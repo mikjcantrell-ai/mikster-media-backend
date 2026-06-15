@@ -1,0 +1,4 @@
+[deploy]
+healthcheckPath = "/api/artists"
+healthcheckTimeout = 30
+startCommand = "java -jar target/miksetermedia-backend-1.0.0.jar"
