@@ -76,6 +76,8 @@ public class SubmissionService {
         submission.setPlatformType(dto.getPlatformType());
         submission.setToolsDeclared(dto.getToolsDeclared());
         submission.setSubmitterEmail(dto.getSubmitterEmail());
+        submission.setVideoUrl(dto.getVideoUrl());
+        submission.setArtistWebsite(dto.getArtistWebsite());
         
         memberRepository.findByEmailIgnoreCase(dto.getSubmitterEmail()).ifPresent(member -> {
             if ("PRODUCER".equalsIgnoreCase(member.getMembershipTier())) {

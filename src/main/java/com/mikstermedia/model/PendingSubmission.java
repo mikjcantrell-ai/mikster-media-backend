@@ -51,6 +51,14 @@ public class PendingSubmission {
     @Column(name = "tools_declared", length = 512)
     private String toolsDeclared;
 
+    /** Optional YouTube music video URL for the track. */
+    @Column(name = "video_url", length = 1024)
+    private String videoUrl;
+
+    /** Optional artist/creator personal website URL. */
+    @Column(name = "artist_website", length = 1024)
+    private String artistWebsite;
+
     /** Contact email for editorial follow-up. */
     @Column(name = "submitter_email", nullable = false)
     private String submitterEmail;

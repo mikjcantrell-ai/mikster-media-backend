@@ -9,6 +9,8 @@ public class SubmissionDTO {
     @NotBlank private String platformType;
     private String toolsDeclared;
     private String submitterEmail;
+    private String videoUrl;
+    private String artistWebsite;
 
     public String getTrackTitle()     { return trackTitle; }
     public void setTrackTitle(String trackTitle) { this.trackTitle = trackTitle; }
@@ -22,4 +24,8 @@ public class SubmissionDTO {
     public void setToolsDeclared(String toolsDeclared) { this.toolsDeclared = toolsDeclared; }
     public String getSubmitterEmail() { return submitterEmail; }
     public void setSubmitterEmail(String submitterEmail) { this.submitterEmail = submitterEmail; }
+    public String getVideoUrl()       { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+    public String getArtistWebsite()  { return artistWebsite; }
+    public void setArtistWebsite(String artistWebsite) { this.artistWebsite = artistWebsite; }
 }
