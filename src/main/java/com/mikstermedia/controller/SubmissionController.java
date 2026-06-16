@@ -64,4 +64,11 @@ public class SubmissionController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    /** DELETE /api/submissions/{id} — admin removes a pending submission */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSubmission(@PathVariable Long id) {
+        submissionService.deleteSubmission(id);
+        return ResponseEntity.noContent().build();
+    }
 }

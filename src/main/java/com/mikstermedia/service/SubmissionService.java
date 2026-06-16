@@ -126,4 +126,9 @@ public class SubmissionService {
 
         log.debug("URL validated OK for platform={}", platformType);
     }
+
+    public void deleteSubmission(Long id) {
+        submissionRepository.deleteById(id);
+        log.info("Submission {} deleted by admin.", id);
+    }
 }
