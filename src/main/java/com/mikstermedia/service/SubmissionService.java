@@ -69,6 +69,19 @@ public class SubmissionService {
         // Domain whitelist check — enforced before any persistence
         validateStreamUrl(dto.getStreamUrl(), dto.getPlatformType());
 
+        // Tier gate — only CREATOR and PRODUCER members may submit tracks
+        Member submitter = memberRepository.findByEmailIgnoreCase(dto.getSubmitterEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No account found for " + dto.getSubmitterEmail() +
+                        ". Please join as a Creator or Producer to submit tracks."));
+
+        String tier = submitter.getMembershipTier() == null ? "" : submitter.getMembershipTier().toUpperCase();
+        if (!"CREATOR".equals(tier) && !"PRODUCER".equals(tier)) {
+            throw new IllegalArgumentException(
+                    "Track submission is available to Creator and Producer members only. " +
+                    "Please upgrade your membership to submit tracks.");
+        }
+
         PendingSubmission submission = new PendingSubmission();
         submission.setTrackTitle(dto.getTrackTitle());
         submission.setArtistName(dto.getArtistName());
@@ -78,12 +91,11 @@ public class SubmissionService {
         submission.setSubmitterEmail(dto.getSubmitterEmail());
         submission.setVideoUrl(dto.getVideoUrl());
         submission.setArtistWebsite(dto.getArtistWebsite());
-        
-        memberRepository.findByEmailIgnoreCase(dto.getSubmitterEmail()).ifPresent(member -> {
-            if ("PRODUCER".equalsIgnoreCase(member.getMembershipTier())) {
-                submission.setPriority(true);
-            }
-        });
+
+        // PRODUCER members get priority queue placement
+        if ("PRODUCER".equals(tier)) {
+            submission.setPriority(true);
+        }
         // submissionDate is set automatically via @PrePersist
 
         log.info("New submission ingested: '{}' by {}", dto.getTrackTitle(), dto.getArtistName());
