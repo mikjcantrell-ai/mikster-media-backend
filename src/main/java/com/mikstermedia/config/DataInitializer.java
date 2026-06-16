@@ -58,9 +58,11 @@ public class DataInitializer implements CommandLineRunner {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void seedAdminUser() {
-        // Upsert: create or update admin so password always matches application.properties
-        AppUser admin = userRepository.findByUsernameIgnoreCase(adminUsername)
-                .orElseGet(AppUser::new);
+        if (userRepository.findByUsernameIgnoreCase(adminUsername).isPresent()) {
+            log.info("Admin user '{}' already exists — skipping seed.", adminUsername);
+            return;
+        }
+        AppUser admin = new AppUser();
         admin.setUsername(adminUsername);
         admin.setPasswordHash(passwordEncoder.encode(adminPassword));
         admin.setEmail("admin@mikstermedia.io");
@@ -68,7 +70,7 @@ public class DataInitializer implements CommandLineRunner {
         admin.setDisplayName("Platform Admin");
         admin.setActive(true);
         userRepository.save(admin);
-        log.info("Admin user '{}' upserted in app_users table.", adminUsername);
+        log.info("Admin user '{}' created in app_users table.", adminUsername);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
