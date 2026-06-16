@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/members/change-tier").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/collabs").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/inquiries").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/submissions").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/charts/*/upvote").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/charts/*/play").permitAll()
                 // Admin-only write operations
