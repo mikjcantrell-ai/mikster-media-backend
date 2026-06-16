@@ -58,19 +58,17 @@ public class DataInitializer implements CommandLineRunner {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void seedAdminUser() {
-        // If the admin username already exists in DB, skip (idempotent)
-        if (userRepository.findByUsernameIgnoreCase(adminUsername).isPresent()) return;
-        log.info("Seeding initial admin user: {}", adminUsername);
-
-        AppUser admin = new AppUser();
+        // Upsert: create or update admin so password always matches application.properties
+        AppUser admin = userRepository.findByUsernameIgnoreCase(adminUsername)
+                .orElseGet(AppUser::new);
         admin.setUsername(adminUsername);
         admin.setPasswordHash(passwordEncoder.encode(adminPassword));
-        admin.setEmail("admin@aimusicweb.io");
+        admin.setEmail("admin@mikstermedia.io");
         admin.setRole("ADMIN");
         admin.setDisplayName("Platform Admin");
         admin.setActive(true);
         userRepository.save(admin);
-        log.info("Admin user '{}' created in app_users table.", adminUsername);
+        log.info("Admin user '{}' upserted in app_users table.", adminUsername);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
