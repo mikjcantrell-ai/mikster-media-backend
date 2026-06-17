@@ -185,6 +185,18 @@ public class SpotifyController {
         dto.setSpotifyPopularity(candidate.getPopularity());
         dto.setReleaseDate(candidate.getReleaseDate());
 
+        // ── 3. Capture YouTube link if present ───────────────────────────────
+        // The frontend may send a youtubeUrl alongside a Spotify result (e.g. when
+        // the result was cross-referenced or the platform is YouTube via this endpoint).
+        if (candidate.getYoutubeUrl() != null && !candidate.getYoutubeUrl().isBlank()) {
+            dto.setVideoUrl(candidate.getYoutubeUrl());
+            // If the mediaUrl wasn't set from Spotify (e.g. YouTube-only result routed
+            // through this endpoint), fall back to the YouTube URL as the primary link.
+            if (dto.getMediaUrl() == null || dto.getMediaUrl().isBlank()) {
+                dto.setMediaUrl(candidate.getYoutubeUrl());
+            }
+        }
+
         trackService.createTrack(dto);
         return ResponseEntity.noContent().build();
     }

@@ -16,6 +16,7 @@ public class SpotifySearchResult {
     private String platformSource;  // "Spotify" or "YouTube"
     private String primaryArtistId;
     private boolean alreadyImported;
+    private String youtubeUrl;         // optional YouTube link carried alongside a Spotify result
 
     public SpotifySearchResult() {}
 
@@ -64,4 +65,6 @@ public class SpotifySearchResult {
     public void setPrimaryArtistId(String primaryArtistId) { this.primaryArtistId = primaryArtistId; }
     public boolean isAlreadyImported() { return alreadyImported; }
     public void setAlreadyImported(boolean alreadyImported) { this.alreadyImported = alreadyImported; }
+    public String getYoutubeUrl()   { return youtubeUrl; }
+    public void setYoutubeUrl(String youtubeUrl) { this.youtubeUrl = youtubeUrl; }
 }
