@@ -83,14 +83,22 @@ public class SubmissionService {
         }
 
         PendingSubmission submission = new PendingSubmission();
+        // Track
         submission.setTrackTitle(dto.getTrackTitle());
-        submission.setArtistName(dto.getArtistName());
         submission.setStreamUrl(dto.getStreamUrl());
         submission.setPlatformType(dto.getPlatformType());
         submission.setToolsDeclared(dto.getToolsDeclared());
-        submission.setSubmitterEmail(dto.getSubmitterEmail());
         submission.setVideoUrl(dto.getVideoUrl());
+        // Artist profile
+        submission.setArtistName(dto.getArtistName());
+        submission.setArtistBio(dto.getArtistBio());
+        submission.setArtistCountry(dto.getArtistCountry());
+        submission.setArtistPrimaryGenre(dto.getArtistPrimaryGenre());
+        submission.setArtistImageUrl(dto.getArtistImageUrl());
+        submission.setArtistProfileUrl(dto.getArtistProfileUrl());
         submission.setArtistWebsite(dto.getArtistWebsite());
+        // Meta
+        submission.setSubmitterEmail(dto.getSubmitterEmail());
 
         // PRODUCER members get priority queue placement
         if ("PRODUCER".equals(tier)) {

@@ -28,13 +28,11 @@ public class PendingSubmission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ── Track info ──────────────────────────────────────────────────────────
+
     /** Title the creator assigned to their track. */
     @Column(name = "track_title", nullable = false)
     private String trackTitle;
-
-    /** Creator / artist name as self-reported. */
-    @Column(name = "artist_name", nullable = false)
-    private String artistName;
 
     /**
      * Validated streaming URL.
@@ -55,9 +53,37 @@ public class PendingSubmission {
     @Column(name = "video_url", length = 1024)
     private String videoUrl;
 
-    /** Optional artist/creator personal website URL. */
+    // ── Artist profile info ─────────────────────────────────────────────────
+
+    /** Creator / artist name as self-reported. */
+    @Column(name = "artist_name", nullable = false)
+    private String artistName;
+
+    /** Short artist biography. */
+    @Column(name = "artist_bio", columnDefinition = "TEXT")
+    private String artistBio;
+
+    /** Artist country of origin. */
+    @Column(name = "artist_country")
+    private String artistCountry;
+
+    /** Primary genre the artist identifies with. */
+    @Column(name = "artist_primary_genre")
+    private String artistPrimaryGenre;
+
+    /** Artist profile picture or press-photo URL. */
+    @Column(name = "artist_image_url", length = 1024)
+    private String artistImageUrl;
+
+    /** Streaming platform profile URL (e.g. Spotify artist page). */
+    @Column(name = "artist_profile_url", length = 1024)
+    private String artistProfileUrl;
+
+    /** Artist/creator personal website URL. */
     @Column(name = "artist_website", length = 1024)
     private String artistWebsite;
+
+    // ── Submission meta ─────────────────────────────────────────────────────
 
     /** Contact email for editorial follow-up. */
     @Column(name = "submitter_email", nullable = false)
