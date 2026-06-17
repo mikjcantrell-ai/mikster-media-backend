@@ -766,6 +766,44 @@ public class SpotifyService {
             }
         }
 
+        // ── Auto-create artist(s) if missing ────────────────────────────────────
+        // After a refresh may have updated creator name, ensure each named artist exists.
+        String creatorField = track.getCreator();
+        if (creatorField != null && !creatorField.isBlank()) {
+            for (String raw : creatorField.split(",")) {
+                String artistName = raw.trim();
+                if (artistName.isBlank()) continue;
+                boolean exists = artistRepository
+                    .findByNameContainingIgnoreCase(artistName)
+                    .stream()
+                    .anyMatch(a -> a.getName().equalsIgnoreCase(artistName));
+                if (!exists) {
+                    Artist newArtist = new Artist();
+                    newArtist.setName(artistName);
+                    newArtist.setAiToolsUsed(track.getPlatformSource() != null
+                        ? track.getPlatformSource() + " Import" : "Import");
+                    if (track.getImageUrl() != null && !track.getImageUrl().isBlank()) {
+                        newArtist.setImageUrl(track.getImageUrl());
+                    }
+                    artistRepository.save(newArtist);
+                    updated.add("autoCreatedArtist:" + artistName);
+                    log.info("Auto-created artist '{}' during track refresh for track {}", artistName, trackId);
+                }
+            }
+        }
+
+        // ── Backfill videoUrl from mediaUrl if the link is a YouTube URL ─────────
+        // Handles tracks imported before videoUrl was captured (legacy data fix).
+        String existingVideoUrl = track.getVideoUrl();
+        String mediaUrl = track.getMediaUrl();
+        if ((existingVideoUrl == null || existingVideoUrl.isBlank())
+                && mediaUrl != null
+                && (mediaUrl.contains("youtube.com") || mediaUrl.contains("youtu.be"))) {
+            track.setVideoUrl(mediaUrl);
+            updated.add("backfilledVideoUrl");
+            log.info("Backfilled videoUrl from mediaUrl for track {}", trackId);
+        }
+
         try {
             Integer scrobbles = lastFmService.getScrobbles(track.getTitle(), track.getCreator());
             if (track.getLastFmScrobbles() == null || !scrobbles.equals(track.getLastFmScrobbles())) {
@@ -777,8 +815,10 @@ public class SpotifyService {
         }
 
         try {
+            // Use videoUrl if set, otherwise fall back to mediaUrl for YouTube-platform tracks
             String ytUrl = track.getVideoUrl();
-            
+            if (ytUrl == null || ytUrl.isBlank()) ytUrl = track.getMediaUrl();
+
             if (ytUrl != null && !ytUrl.isBlank() && (ytUrl.contains("youtube.com") || ytUrl.contains("youtu.be"))) {
                 Long views = youTubeService.getViews(ytUrl);
                 if (track.getYoutubeViews() == null || !views.equals(track.getYoutubeViews())) {
