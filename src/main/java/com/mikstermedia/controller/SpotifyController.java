@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
 import java.util.Map;
 
@@ -197,7 +198,14 @@ public class SpotifyController {
             }
         }
 
-        trackService.createTrack(dto);
+        try {
+            trackService.createTrack(dto);
+        } catch (DataIntegrityViolationException e) {
+            // Duplicate title+creator or duplicate media_url — track already exists
+            log.warn("Import skipped — duplicate track '{}' by '{}': {}",
+                     candidate.getTitle(), candidate.getArtist(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
         return ResponseEntity.noContent().build();
     }
 
