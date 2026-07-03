@@ -82,6 +82,15 @@ public class GenreService {
     }
 
     @Transactional
+    public Genre extendNow(Long id) {
+        Genre g = repo.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Genre not found: " + id));
+        g.setFeaturedStatus(true);
+        g.setFeaturedSince(LocalDateTime.now());
+        return repo.save(g);
+    }
+
+    @Transactional
     public void reorder(List<Map<String, Integer>> orderItems) {
         for (Map<String, Integer> item : orderItems) {
             Long id = item.get("id").longValue();

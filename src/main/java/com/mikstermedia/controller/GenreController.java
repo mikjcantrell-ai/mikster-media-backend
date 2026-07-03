@@ -49,6 +49,15 @@ public class GenreController {
         }
     }
 
+    @PostMapping("/{id}/extend")
+    public ResponseEntity<Genre> extendGenre(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(genreService.extendNow(id));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/reorder")
     public ResponseEntity<Void> reorderFeatured(@RequestBody List<java.util.Map<String, Integer>> updates) {
         genreService.reorder(updates);
