@@ -971,6 +971,13 @@ public class SpotifyService {
             }
             log.info("Async bulk track refresh: {}/{} refreshed, {} errors",
                      refreshed, tracksRefreshTotal, tracksRefreshErrors);
+            // Persist the completion timestamp
+            String ts = java.time.format.DateTimeFormatter
+                    .ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
+                    .withZone(java.time.ZoneId.of("UTC"))
+                    .format(Instant.now());
+            settingRepo.save(new PlatformSetting("tracks_last_updated", ts));
+            log.info("tracks_last_updated = {}", ts);
         } finally {
             isTracksRefreshing = false;
         }

@@ -3,6 +3,7 @@ package com.mikstermedia.controller;
 import com.mikstermedia.dto.TrackDTO;
 import com.mikstermedia.dto.TrackOrderDTO;
 import com.mikstermedia.model.Track;
+import com.mikstermedia.repository.PlatformSettingRepository;
 import com.mikstermedia.service.TrackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ import java.util.List;
 public class TrackController {
 
     private final TrackService trackService;
+    private final PlatformSettingRepository settingRepository;
 
     /** GET /api/tracks — returns all curated tracks */
     @GetMapping
@@ -117,6 +119,18 @@ public class TrackController {
     public ResponseEntity<Void> deleteTrack(@PathVariable Long id) {
         trackService.deleteTrack(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/tracks/last-updated
+     * Returns the ISO datetime string of the last scheduled track refresh,
+     * or an empty string if the job has never run.
+     */
+    @GetMapping("/last-updated")
+    public ResponseEntity<String> getLastUpdated() {
+        return settingRepository.findById("tracks_last_updated")
+                .map(s -> ResponseEntity.ok(s.getSettingValue()))
+                .orElse(ResponseEntity.ok(""));
     }
 
     /**

@@ -2,12 +2,17 @@ package com.mikstermedia.controller;
 
 import com.mikstermedia.model.WeeklyChart;
 import com.mikstermedia.model.Track;
+import com.mikstermedia.model.PlatformSetting;
+import com.mikstermedia.repository.PlatformSettingRepository;
 import com.mikstermedia.service.WeeklyChartService;
 import com.mikstermedia.service.TrackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +38,7 @@ public class WeeklyChartController {
     private final WeeklyChartService weeklyChartService;
     private final TrackService trackService;
     private final com.mikstermedia.service.SpotifyService spotifyService;
+    private final PlatformSettingRepository settingRepository;
 
     /**
      * GET /api/charts/top10
@@ -98,9 +104,16 @@ public class WeeklyChartController {
                 // Ignore failure for a single track and continue
             }
         }
-        
+
         // Final recalculation in case any scores changed
         weeklyChartService.recalculateRankings();
+
+        // Persist the chart last-updated timestamp
+        String ts = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
+                                     .withZone(ZoneId.of("UTC"))
+                                     .format(Instant.now());
+        settingRepository.save(new PlatformSetting("chart_last_updated", ts));
+
         return ResponseEntity.ok(Map.of("message", "Rankings recalculated successfully"));
     }
 
@@ -111,5 +124,17 @@ public class WeeklyChartController {
     public ResponseEntity<Map<String, String>> snapshot() {
         weeklyChartService.snapshotWeek();
         return ResponseEntity.ok(Map.of("message", "Weekly snapshot taken successfully"));
+    }
+
+    /**
+     * GET /api/charts/last-updated
+     * Returns the ISO datetime string of the last scheduled chart recalculation,
+     * or an empty string if the scheduled job has never run.
+     */
+    @GetMapping("/last-updated")
+    public ResponseEntity<String> getLastUpdated() {
+        return settingRepository.findById("chart_last_updated")
+                .map(s -> ResponseEntity.ok(s.getSettingValue()))
+                .orElse(ResponseEntity.ok(""));
     }
 }
