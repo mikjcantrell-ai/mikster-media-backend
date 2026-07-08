@@ -82,6 +82,29 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendCustomEmailBlast(List<String> emails, String subject, String body) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping bulk email.");
+            return;
+        }
+        
+        String htmlContent = "<div style=\"font-family: sans-serif; max-width: 600px; margin: 0 auto;\">" +
+                "<p style=\"white-space: pre-wrap;\">" + body + "</p>" +
+                "<br>" +
+                "<p style=\"color: #666; font-size: 0.9em;\">You are receiving this because you are a member of Mikster Media.</p>" +
+                "</div>";
+                
+        for (String email : emails) {
+            try {
+                sendResendEmail(email, subject, htmlContent);
+                log.info("Bulk email sent to {} via Resend API", email);
+            } catch (Exception e) {
+                log.error("Failed to send bulk email to {}: {}", email, e.getMessage());
+            }
+        }
+    }
+
     private void sendResendEmail(String to, String subject, String htmlContent) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
