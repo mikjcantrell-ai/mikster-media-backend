@@ -21,6 +21,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final GoogleOAuth2Service googleOAuth2Service;
+    private final EmailService emailService;
 
     public Member oauth2Login(com.mikstermedia.dto.OAuth2LoginDTO dto) {
         if ("GOOGLE".equalsIgnoreCase(dto.getProvider())) {
@@ -41,7 +42,10 @@ public class MemberService {
                 member.setAuthProvider("GOOGLE");
                 member.setProviderId(subject);
                 member.setMembershipTier("LISTENER");
-                return memberRepository.save(member);
+                Member saved = memberRepository.save(member);
+                emailService.sendWelcomeEmail(saved);
+                emailService.sendAdminNotification(saved);
+                return saved;
             } else {
                 // If they exist, ensure their auth provider is set so they can login next time
                 if ("LOCAL".equals(member.getAuthProvider())) {
@@ -97,6 +101,10 @@ public class MemberService {
         Member saved = memberRepository.save(member);
         log.info("New {} member joined: {} <{}>", saved.getMembershipTier(),
                 saved.getDisplayName(), saved.getEmail());
+        
+        emailService.sendWelcomeEmail(saved);
+        emailService.sendAdminNotification(saved);
+        
         return saved;
     }
 
