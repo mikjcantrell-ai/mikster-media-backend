@@ -1,22 +1,27 @@
 package com.mikstermedia.service;
 
 import com.mikstermedia.model.Member;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender javaMailSender;
+    @Value("${resend.api-key}")
+    private String resendApiKey;
 
     @Value("${app.admin.email}")
     private String adminEmail;
@@ -24,16 +29,16 @@ public class EmailService {
     @Value("${app.mail.from}")
     private String fromEmail;
 
+    private final RestTemplate restTemplate = new RestTemplate();
+
     @Async
     public void sendWelcomeEmail(Member member) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping welcome email to {}", member.getEmail());
+            return;
+        }
+
         try {
-            MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(member.getEmail());
-            helper.setSubject("Welcome to Mikster Media AI Music!");
-
             String htmlContent = "<h2>Welcome to Mikster Media, " + member.getDisplayName() + "!</h2>" +
                     "<p>Thank you for joining our community.</p>" +
                     "<h3>What We Do</h3>" +
@@ -44,9 +49,8 @@ public class EmailService {
                     "<p>We're excited to have you on board.</p>" +
                     "<p>Cheers,<br>The Mikster Media Team</p>";
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(message);
-            log.info("Welcome email sent to {}", member.getEmail());
+            sendResendEmail(member.getEmail(), "Welcome to Mikster Media AI Music!", htmlContent);
+            log.info("Welcome email sent to {} via Resend API", member.getEmail());
 
         } catch (Exception e) {
             log.error("Failed to send welcome email to {}: {}", member.getEmail(), e.getMessage());
@@ -55,27 +59,42 @@ public class EmailService {
 
     @Async
     public void sendAdminNotification(Member member) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping admin notification for {}", member.getEmail());
+            return;
+        }
+
         try {
-            MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            String content = "<p>A new member has joined Mikster Media!</p>" +
+                    "<ul>" +
+                    "<li><strong>Name:</strong> " + member.getDisplayName() + "</li>" +
+                    "<li><strong>Email:</strong> " + member.getEmail() + "</li>" +
+                    "<li><strong>Auth Provider:</strong> " + member.getAuthProvider() + "</li>" +
+                    "<li><strong>Primary AI Tool:</strong> " + (member.getPrimaryAiTool() != null ? member.getPrimaryAiTool() : "Not specified") + "</li>" +
+                    "<li><strong>Genre Interest:</strong> " + (member.getGenreInterest() != null ? member.getGenreInterest() : "Not specified") + "</li>" +
+                    "</ul>";
 
-            helper.setFrom(fromEmail);
-            helper.setTo(adminEmail);
-            helper.setSubject("New Member Signup: " + member.getDisplayName());
-
-            String content = "A new member has joined Mikster Media!\n\n" +
-                    "Name: " + member.getDisplayName() + "\n" +
-                    "Email: " + member.getEmail() + "\n" +
-                    "Auth Provider: " + member.getAuthProvider() + "\n" +
-                    "Primary AI Tool: " + (member.getPrimaryAiTool() != null ? member.getPrimaryAiTool() : "Not specified") + "\n" +
-                    "Genre Interest: " + (member.getGenreInterest() != null ? member.getGenreInterest() : "Not specified");
-
-            helper.setText(content, false);
-            javaMailSender.send(message);
-            log.info("Admin notification sent for new member: {}", member.getEmail());
+            sendResendEmail(adminEmail, "New Member Signup: " + member.getDisplayName(), content);
+            log.info("Admin notification sent for new member: {} via Resend API", member.getEmail());
 
         } catch (Exception e) {
             log.error("Failed to send admin notification for member {}: {}", member.getEmail(), e.getMessage());
         }
+    }
+
+    private void sendResendEmail(String to, String subject, String htmlContent) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(resendApiKey);
+
+        Map<String, Object> payload = Map.of(
+                "from", fromEmail,
+                "to", List.of(to),
+                "subject", subject,
+                "html", htmlContent
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+        restTemplate.exchange("https://api.resend.com/emails", HttpMethod.POST, request, String.class);
     }
 }
