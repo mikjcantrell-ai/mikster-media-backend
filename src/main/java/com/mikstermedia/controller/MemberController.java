@@ -90,4 +90,11 @@ public class MemberController {
     public ResponseEntity<List<Member>> getAll() {
         return ResponseEntity.ok(memberService.getAll());
     }
+
+    /** Admin: delete a member */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        memberService.deleteMember(id);
+        return ResponseEntity.ok().build();
+    }
 }

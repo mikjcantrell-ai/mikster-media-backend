@@ -143,4 +143,9 @@ public class MemberService {
     public long count() {
         return memberRepository.count();
     }
+
+    public void deleteMember(Long id) {
+        memberRepository.deleteById(id);
+        log.info("Deleted member with id {}", id);
+    }
 }
