@@ -2,7 +2,9 @@ package com.mikstermedia.controller;
 
 import com.mikstermedia.dto.AdminEmailDTO;
 import com.mikstermedia.model.Member;
+import com.mikstermedia.model.EmailBlast;
 import com.mikstermedia.repository.MemberRepository;
+import com.mikstermedia.repository.EmailBlastRepository;
 import com.mikstermedia.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,12 @@ public class AdminEmailController {
 
     private final EmailService emailService;
     private final MemberRepository memberRepository;
+    private final EmailBlastRepository emailBlastRepository;
+
+    @GetMapping
+    public ResponseEntity<List<EmailBlast>> getEmailHistory() {
+        return ResponseEntity.ok(emailBlastRepository.findAllByOrderBySentAtDesc());
+    }
 
     @PostMapping("/send")
     public ResponseEntity<Map<String, Object>> sendEmailBlast(@RequestBody AdminEmailDTO dto) {
@@ -41,6 +49,12 @@ public class AdminEmailController {
         }
 
         emailService.sendCustomEmailBlast(targetEmails, dto.getSubject(), dto.getBody());
+
+        EmailBlast logEntry = new EmailBlast();
+        logEntry.setSubject(dto.getSubject());
+        logEntry.setBody(dto.getBody());
+        logEntry.setRecipientCount(targetEmails.size());
+        emailBlastRepository.save(logEntry);
 
         return ResponseEntity.ok(Map.of(
             "success", true,
