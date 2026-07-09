@@ -26,6 +26,8 @@ public class Artist {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    private String email;
+
     private String country;
 
     /** Comma-separated AI tools used by this artist (e.g. "Suno v3, Udio") */
@@ -75,6 +77,9 @@ public class Artist {
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }

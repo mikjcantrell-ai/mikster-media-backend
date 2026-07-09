@@ -116,6 +116,10 @@ public class ArtistService {
      */
     @Transactional
     public Artist save(Artist artist) {
+        if (artist.getEmail() == null || artist.getEmail().isBlank()) {
+            artist.setEmail(extractEmail(artist.getBio()));
+        }
+
         if (artist.isFeaturedStatus() && artist.getFeaturedSince() == null) {
             artist.setFeaturedSince(LocalDateTime.now());
         } else if (!artist.isFeaturedStatus()) {
@@ -123,6 +127,15 @@ public class ArtistService {
             artist.setFeaturedSince(null);
         }
         return repo.save(artist);
+    }
+
+    private String extractEmail(String text) {
+        if (text == null || text.isBlank()) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}").matcher(text);
+        if (m.find()) {
+            return m.group();
+        }
+        return null;
     }
 
     /**
@@ -138,6 +151,13 @@ public class ArtistService {
         a.setName(body.getName());
         a.setBio(body.getBio());
         a.setCountry(body.getCountry());
+        
+        if (body.getEmail() != null && !body.getEmail().isBlank()) {
+            a.setEmail(body.getEmail());
+        } else {
+            a.setEmail(extractEmail(body.getBio()));
+        }
+
         a.setAiToolsUsed(body.getAiToolsUsed());
         a.setPrimaryGenre(body.getPrimaryGenre());
         a.setImageUrl(body.getImageUrl());

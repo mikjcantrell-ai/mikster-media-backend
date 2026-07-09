@@ -785,6 +785,7 @@ public class SpotifyService {
                     if (track.getImageUrl() != null && !track.getImageUrl().isBlank()) {
                         newArtist.setImageUrl(track.getImageUrl());
                     }
+
                     artistRepository.save(newArtist);
                     updated.add("autoCreatedArtist:" + artistName);
                     log.info("Auto-created artist '{}' during track refresh for track {}", artistName, trackId);
@@ -1067,6 +1068,18 @@ public class SpotifyService {
             }
         } catch (Exception e) {
             log.error("Failed to fetch artist genre for {}: {}", artistId, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Attempts to find an email address inside a block of text using regex.
+     */
+    private String extractEmail(String text) {
+        if (text == null || text.isBlank()) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}").matcher(text);
+        if (m.find()) {
+            return m.group();
         }
         return null;
     }
