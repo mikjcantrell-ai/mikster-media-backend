@@ -78,6 +78,10 @@ public class TrackService {
         return trackRepository.findByCreatorContainingIgnoreCase(creator);
     }
 
+    public List<Track> getRecentVideos() {
+        return trackRepository.findTop25ByVideoUrlIsNotNullAndVideoUrlNotOrderByIdDesc("");
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // WRITE operations
     // ─────────────────────────────────────────────────────────────────────────

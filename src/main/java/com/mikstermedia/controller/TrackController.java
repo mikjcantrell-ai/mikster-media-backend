@@ -55,6 +55,12 @@ public class TrackController {
         return ResponseEntity.ok(trackService.getFeaturedTracks());
     }
 
+    /** GET /api/tracks/recent-videos — fetch most recent tracks with video URLs */
+    @GetMapping("/recent-videos")
+    public ResponseEntity<List<Track>> getRecentVideos() {
+        return ResponseEntity.ok(trackService.getRecentVideos());
+    }
+
     /** GET /api/tracks/platform/{source} — filter by Spotify, YouTube, Apple */
     @GetMapping("/platform/{source}")
     public ResponseEntity<List<Track>> getByPlatform(@PathVariable String source) {
