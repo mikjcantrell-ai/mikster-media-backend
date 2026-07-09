@@ -7,6 +7,7 @@ import java.util.List;
 public class AdminEmailDTO {
     private String subject;
     private String body;
-    private String recipientMode; // ALL, NEWSLETTER, SPECIFIC
+    private String recipientMode; // ALL, NEWSLETTER, SPECIFIC, OTHER
     private List<Long> memberIds;
+    private String customEmails;
 }

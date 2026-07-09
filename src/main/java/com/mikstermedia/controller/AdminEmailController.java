@@ -52,6 +52,11 @@ public class AdminEmailController {
                     .filter(Member::isNewsletterOptIn)
                     .map(Member::getEmail)
                     .collect(Collectors.toList());
+        } else if ("OTHER".equalsIgnoreCase(dto.getRecipientMode())) {
+            targetEmails = java.util.Arrays.stream(dto.getCustomEmails().split(","))
+                    .map(String::trim)
+                    .filter(email -> !email.isEmpty())
+                    .collect(Collectors.toList());
         } else {
             targetEmails = memberRepository.findAllById(dto.getMemberIds()).stream()
                     .map(Member::getEmail)
