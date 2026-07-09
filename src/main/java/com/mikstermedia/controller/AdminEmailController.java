@@ -34,8 +34,13 @@ public class AdminEmailController {
     public ResponseEntity<Map<String, Object>> sendEmailBlast(@RequestBody AdminEmailDTO dto) {
         List<String> targetEmails;
 
-        if (dto.isSendToAll()) {
+        if ("ALL".equalsIgnoreCase(dto.getRecipientMode())) {
             targetEmails = memberRepository.findAll().stream()
+                    .map(Member::getEmail)
+                    .collect(Collectors.toList());
+        } else if ("NEWSLETTER".equalsIgnoreCase(dto.getRecipientMode())) {
+            targetEmails = memberRepository.findAll().stream()
+                    .filter(Member::isNewsletterOptIn)
                     .map(Member::getEmail)
                     .collect(Collectors.toList());
         } else {

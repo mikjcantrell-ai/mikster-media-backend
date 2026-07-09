@@ -7,6 +7,6 @@ import java.util.List;
 public class AdminEmailDTO {
     private String subject;
     private String body;
-    private boolean sendToAll;
+    private String recipientMode; // ALL, NEWSLETTER, SPECIFIC
     private List<Long> memberIds;
 }
