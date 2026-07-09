@@ -974,7 +974,7 @@ public class SpotifyService {
                      refreshed, tracksRefreshTotal, tracksRefreshErrors);
             // Persist the completion timestamp
             String ts = java.time.format.DateTimeFormatter
-                    .ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
+                    .ofPattern("dd-MMM-yyyy hh:mm a 'UTC'")
                     .withZone(java.time.ZoneId.of("UTC"))
                     .format(Instant.now());
             settingRepo.save(new PlatformSetting("tracks_last_updated", ts));

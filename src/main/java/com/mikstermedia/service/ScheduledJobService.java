@@ -37,7 +37,7 @@ public class ScheduledJobService {
     private static final long POLL_INTERVAL_MS   = 10_000L;           // 10 seconds
 
     private static final DateTimeFormatter FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
+            DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm a 'UTC'")
                              .withZone(ZoneId.of("UTC"));
 
     private final SpotifyService            spotifyService;

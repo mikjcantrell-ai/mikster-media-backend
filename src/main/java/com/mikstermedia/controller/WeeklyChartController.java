@@ -109,7 +109,7 @@ public class WeeklyChartController {
         weeklyChartService.recalculateRankings();
 
         // Persist the chart last-updated timestamp
-        String ts = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'")
+        String ts = DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm a 'UTC'")
                                      .withZone(ZoneId.of("UTC"))
                                      .format(Instant.now());
         settingRepository.save(new PlatformSetting("chart_last_updated", ts));
