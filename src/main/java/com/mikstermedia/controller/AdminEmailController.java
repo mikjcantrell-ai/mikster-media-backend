@@ -30,6 +30,15 @@ public class AdminEmailController {
         return ResponseEntity.ok(emailBlastRepository.findAllByOrderBySentAtDesc());
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteEmailBlast(@PathVariable Long id) {
+        if (!emailBlastRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        emailBlastRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Email blast deleted"));
+    }
+
     @PostMapping("/send")
     public ResponseEntity<Map<String, Object>> sendEmailBlast(@RequestBody AdminEmailDTO dto) {
         List<String> targetEmails;
