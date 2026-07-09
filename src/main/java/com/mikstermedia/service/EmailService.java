@@ -110,8 +110,13 @@ public class EmailService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(resendApiKey);
 
+        String formattedFrom = fromEmail;
+        if (!formattedFrom.contains("<")) {
+            formattedFrom = "Mikster Media <" + formattedFrom + ">";
+        }
+
         Map<String, Object> payload = Map.of(
-                "from", fromEmail,
+                "from", formattedFrom,
                 "to", List.of(to),
                 "subject", subject,
                 "html", htmlContent
