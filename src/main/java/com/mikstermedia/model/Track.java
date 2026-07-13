@@ -48,6 +48,10 @@ public class Track {
     @Column(nullable = false)
     private String creator;
 
+    /** Optional direct email address for the track's creator. */
+    @Column(name = "creator_email")
+    private String creatorEmail;
+
     /**
      * Embeddable media URL or URI.
      * For Spotify: "spotify:track:<id>" or "https://open.spotify.com/...".

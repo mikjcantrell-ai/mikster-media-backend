@@ -93,7 +93,10 @@ public class AdminEmailController {
         int sentCount = 0;
 
         for (Track track : featuredTracks) {
-            if (track.getCreator() != null && !track.getCreator().isBlank()) {
+            if (track.getCreatorEmail() != null && !track.getCreatorEmail().isBlank()) {
+                emailService.sendFeaturedTrackEmail(track.getCreatorEmail(), track.getCreator(), track.getTitle(), track.getId());
+                sentCount++;
+            } else if (track.getCreator() != null && !track.getCreator().isBlank()) {
                 artistRepository.findByNameIgnoreCase(track.getCreator()).ifPresent(artist -> {
                     if (artist.getEmail() != null && !artist.getEmail().isBlank()) {
                         emailService.sendFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());

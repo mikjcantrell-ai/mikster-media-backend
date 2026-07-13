@@ -140,7 +140,9 @@ public class TrackService {
         log.info("Extended featured for track id={} '{}' by {} days → until {}",
                  id, track.getTitle(), days, track.getFeaturedUntil());
                  
-        if (track.getCreator() != null && !track.getCreator().isBlank()) {
+        if (track.getCreatorEmail() != null && !track.getCreatorEmail().isBlank()) {
+            emailService.sendExtendedFeaturedTrackEmail(track.getCreatorEmail(), track.getCreator(), track.getTitle(), track.getId());
+        } else if (track.getCreator() != null && !track.getCreator().isBlank()) {
             artistRepository.findByNameIgnoreCase(track.getCreator()).ifPresent(artist -> {
                 if (artist.getEmail() != null && !artist.getEmail().isBlank()) {
                     emailService.sendExtendedFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
@@ -191,6 +193,7 @@ public class TrackService {
     private void mapDtoToEntity(TrackDTO dto, Track track) {
         track.setTitle(dto.getTitle());
         track.setCreator(dto.getCreator());
+        track.setCreatorEmail(dto.getCreatorEmail());
         track.setMediaUrl(dto.getMediaUrl());
         track.setPlatformSource(dto.getPlatformSource());
         track.setAiToolsUsed(dto.getAiToolsUsed());

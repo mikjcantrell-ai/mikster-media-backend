@@ -5,6 +5,7 @@ import java.time.LocalDate;
 public class TrackDTO {
     private String title;
     private String creator;
+    private String creatorEmail;
     private String mediaUrl;
     private String platformSource;
     private String aiToolsUsed;
@@ -30,6 +31,8 @@ public class TrackDTO {
     public void setTitle(String title) { this.title = title; }
     public String getCreator()         { return creator; }
     public void setCreator(String creator) { this.creator = creator; }
+    public String getCreatorEmail()    { return creatorEmail; }
+    public void setCreatorEmail(String creatorEmail) { this.creatorEmail = creatorEmail; }
     public String getMediaUrl()        { return mediaUrl; }
     public void setMediaUrl(String mediaUrl) { this.mediaUrl = mediaUrl; }
     public String getPlatformSource()  { return platformSource; }
