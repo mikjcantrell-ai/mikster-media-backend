@@ -107,6 +107,19 @@ public class ArtistController {
     }
 
     /**
+     * POST /api/artists/{id}/extend — admin extends an artist's featured period.
+     * Re-stamps their featuredSince to now, effectively resetting their 14-day window.
+     */
+    @PostMapping("/{id}/extend")
+    public ResponseEntity<Artist> extendFeatured(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(artistService.extendFeatured(id));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
      * PATCH /api/artists/reorder — bulk-updates displayOrder for the featured carousel.
      * Body: [{id: 1, displayOrder: 0}, {id: 2, displayOrder: 1}, ...]
      * Admin only (secured by SecurityConfig PATCH rule).

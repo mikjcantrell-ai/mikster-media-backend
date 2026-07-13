@@ -32,10 +32,12 @@ public class ArtistService {
 
     private final ArtistRepository repo;
     private final PlatformSettingRepository settingRepo;
+    private final EmailService emailService;
 
-    public ArtistService(ArtistRepository repo, PlatformSettingRepository settingRepo) {
+    public ArtistService(ArtistRepository repo, PlatformSettingRepository settingRepo, EmailService emailService) {
         this.repo = repo;
         this.settingRepo = settingRepo;
+        this.emailService = emailService;
     }
 
     /** Reads the configured featured duration for artists from platform settings. */
@@ -90,6 +92,31 @@ public class ArtistService {
             .orElseThrow(() -> new NoSuchElementException("Artist not found: " + id));
         a.setFeaturedStatus(false);
         a.setFeaturedSince(null);
+        return repo.save(a);
+    }
+
+    /**
+     * Extends a featured artist by resetting their featuredSince timestamp to now.
+     * This grants them a full new featured window (e.g. 14 days).
+     *
+     * @throws NoSuchElementException if the artist is not found
+     */
+    @Transactional
+    public Artist extendFeatured(Long id) {
+        Artist a = repo.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Artist not found: " + id));
+        boolean wasFeatured = a.isFeaturedStatus();
+        a.setFeaturedStatus(true);
+        a.setFeaturedSince(LocalDateTime.now());
+        
+        if (a.getEmail() != null && !a.getEmail().isBlank()) {
+            if (wasFeatured) {
+                emailService.sendExtendedFeaturedArtistEmail(a.getEmail(), a.getName(), a.getId());
+            } else {
+                emailService.sendFeaturedArtistEmail(a.getEmail(), a.getName(), a.getId());
+            }
+        }
+        
         return repo.save(a);
     }
 

@@ -129,6 +129,76 @@ public class EmailService {
     }
 
     @Async
+    public void sendFeaturedArtistEmail(String email, String artistName, Long artistId) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping featured artist email to {}", email);
+            return;
+        }
+
+        try {
+            String artistUrl = "https://mikstermedia.com/artists";
+            String shareText = java.net.URLEncoder.encode("So excited to be featured as a top artist on @MiksterMedia this week! Check out my profile and latest AI tracks: " + artistUrl, "UTF-8");
+            String twitterUrl = "https://twitter.com/intent/tweet?text=" + shareText;
+            String facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" + java.net.URLEncoder.encode(artistUrl, "UTF-8") + "&quote=" + shareText;
+
+            String htmlContent = "<h2>Congratulations, " + artistName + "!</h2>" +
+                    "<p>We are thrilled to let you know that you are currently featured as a top artist on the front page of Mikster Media!</p>" +
+                    "<p>Our community loves the music you've created. We'd love for you to share this achievement with your fans and help spread the word about your AI music.</p>" +
+                    "<div style=\"background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;\">" +
+                    "  <p style=\"margin-top:0;\"><strong>Share this on social media:</strong></p>" +
+                    "  <p style=\"font-style: italic;\">\"So excited to be featured as a top artist on @MiksterMedia this week! Check out my profile and latest AI tracks: " + artistUrl + "\"</p>" +
+                    "  <div style=\"margin-top: 15px;\">" +
+                    "    <a href=\"" + twitterUrl + "\" style=\"display:inline-block; background:#1DA1F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; margin-right:10px;\">Share on X (Twitter)</a>" +
+                    "    <a href=\"" + facebookUrl + "\" style=\"display:inline-block; background:#1877F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px;\">Share on Facebook</a>" +
+                    "  </div>" +
+                    "</div>" +
+                    "<p>Keep up the great work!</p>" +
+                    "<p>— The Mikster Media Team</p>";
+
+            sendResendEmail(email, "Congratulations! You are a featured artist on Mikster Media!", htmlContent);
+            log.info("Featured artist email sent to {} via Resend API", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send featured artist email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendExtendedFeaturedArtistEmail(String email, String artistName, Long artistId) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping extended featured artist email to {}", email);
+            return;
+        }
+
+        try {
+            String artistUrl = "https://mikstermedia.com/artists"; 
+            String shareText = java.net.URLEncoder.encode("My artist profile is blowing up and just got its feature extended on the front page of @MiksterMedia! Let's keep it going, check out my tracks here: " + artistUrl, "UTF-8");
+            String twitterUrl = "https://twitter.com/intent/tweet?text=" + shareText;
+            String facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" + java.net.URLEncoder.encode(artistUrl, "UTF-8") + "&quote=" + shareText;
+
+            String htmlContent = "<h2>Hi " + artistName + ",</h2>" +
+                    "<p>Your profile has been performing incredibly well with the community! Because of its popularity, we have decided to <strong>extend your feature</strong> on the front page of Mikster Media.</p>" +
+                    "<p>Keep the momentum going! We’d love for you to share the good news with your fans so they can continue to follow your work.</p>" +
+                    "<div style=\"background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;\">" +
+                    "  <p style=\"margin-top:0;\"><strong>Share this on social media:</strong></p>" +
+                    "  <p style=\"font-style: italic;\">\"My artist profile is blowing up and just got its feature extended on the front page of @MiksterMedia! Let's keep it going, check out my tracks here: " + artistUrl + "\"</p>" +
+                    "  <div style=\"margin-top: 15px;\">" +
+                    "    <a href=\"" + twitterUrl + "\" style=\"display:inline-block; background:#1DA1F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; margin-right:10px;\">Share on X (Twitter)</a>" +
+                    "    <a href=\"" + facebookUrl + "\" style=\"display:inline-block; background:#1877F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px;\">Share on Facebook</a>" +
+                    "  </div>" +
+                    "</div>" +
+                    "<p>Congratulations again!</p>" +
+                    "<p>— The Mikster Media Team</p>";
+
+            sendResendEmail(email, "Your profile is on fire! We've extended your feature on Mikster Media 🔥", htmlContent);
+            log.info("Extended featured artist email sent to {} via Resend API", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send extended featured artist email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendAdminNotification(Member member) {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             log.warn("RESEND_API_KEY is not set. Skipping admin notification for {}", member.getEmail());
