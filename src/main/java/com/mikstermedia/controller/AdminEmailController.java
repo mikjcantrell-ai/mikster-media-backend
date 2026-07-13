@@ -5,7 +5,11 @@ import com.mikstermedia.model.Member;
 import com.mikstermedia.model.EmailBlast;
 import com.mikstermedia.repository.MemberRepository;
 import com.mikstermedia.repository.EmailBlastRepository;
+import com.mikstermedia.repository.ArtistRepository;
 import com.mikstermedia.service.EmailService;
+import com.mikstermedia.service.TrackService;
+import com.mikstermedia.model.Track;
+import com.mikstermedia.model.Artist;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +28,8 @@ public class AdminEmailController {
     private final EmailService emailService;
     private final MemberRepository memberRepository;
     private final EmailBlastRepository emailBlastRepository;
+    private final TrackService trackService;
+    private final ArtistRepository artistRepository;
 
     @GetMapping
     public ResponseEntity<List<EmailBlast>> getEmailHistory() {
@@ -78,6 +84,28 @@ public class AdminEmailController {
         return ResponseEntity.ok(Map.of(
             "success", true,
             "message", "Email blast initiated to " + targetEmails.size() + " recipients."
+        ));
+    }
+
+    @PostMapping("/notify-featured-tracks")
+    public ResponseEntity<Map<String, Object>> notifyFeaturedTracks() {
+        List<Track> featuredTracks = trackService.getFeaturedTracks();
+        int sentCount = 0;
+
+        for (Track track : featuredTracks) {
+            if (track.getCreator() != null && !track.getCreator().isBlank()) {
+                artistRepository.findByNameIgnoreCase(track.getCreator()).ifPresent(artist -> {
+                    if (artist.getEmail() != null && !artist.getEmail().isBlank()) {
+                        emailService.sendFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
+                    }
+                });
+                sentCount++; // Counting how many artists we attempted to match
+            }
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Notified featured tracks. Processed " + sentCount + " featured tracks."
         ));
     }
 }

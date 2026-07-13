@@ -56,6 +56,41 @@ public class EmailService {
             log.error("Failed to send welcome email to {}: {}", member.getEmail(), e.getMessage());
         }
     }
+    @Async
+    public void sendFeaturedTrackEmail(String email, String artistName, String trackTitle, Long trackId) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping featured track email to {}", email);
+            return;
+        }
+
+        try {
+            String encodedTrackTitle = java.net.URLEncoder.encode(trackTitle, "UTF-8");
+            String trackUrl = "https://mikstermedia.com/songs"; // Adjust if there is a specific track URL, e.g. /songs/trackId
+            String shareText = java.net.URLEncoder.encode("So excited that my track " + trackTitle + " is currently featured on the front page of @MiksterMedia! Check it out and upvote it here: " + trackUrl, "UTF-8");
+            String twitterUrl = "https://twitter.com/intent/tweet?text=" + shareText;
+            String facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" + java.net.URLEncoder.encode(trackUrl, "UTF-8") + "&quote=" + shareText;
+
+            String htmlContent = "<h2>Congratulations, " + artistName + "!</h2>" +
+                    "<p>We are thrilled to let you know that your track <strong>" + trackTitle + "</strong> is currently featured on the front page of Mikster Media!</p>" +
+                    "<p>Our community loves what you've created. We'd love for you to share this achievement with your fans and help spread the word about AI music.</p>" +
+                    "<div style=\"background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;\">" +
+                    "  <p style=\"margin-top:0;\"><strong>Share this on social media:</strong></p>" +
+                    "  <p style=\"font-style: italic;\">\"So excited that my track " + trackTitle + " is currently featured on the front page of @MiksterMedia! Check it out and upvote it here: " + trackUrl + "\"</p>" +
+                    "  <div style=\"margin-top: 15px;\">" +
+                    "    <a href=\"" + twitterUrl + "\" style=\"display:inline-block; background:#1DA1F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; margin-right:10px;\">Share on X (Twitter)</a>" +
+                    "    <a href=\"" + facebookUrl + "\" style=\"display:inline-block; background:#1877F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px;\">Share on Facebook</a>" +
+                    "  </div>" +
+                    "</div>" +
+                    "<p>Keep up the great work!</p>" +
+                    "<p>— The Mikster Media Team</p>";
+
+            sendResendEmail(email, "Congratulations! Your track is featured on Mikster Media!", htmlContent);
+            log.info("Featured track email sent to {} via Resend API", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send featured track email to {}: {}", email, e.getMessage());
+        }
+    }
 
     @Async
     public void sendAdminNotification(Member member) {
