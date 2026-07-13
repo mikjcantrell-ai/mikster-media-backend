@@ -93,6 +93,42 @@ public class EmailService {
     }
 
     @Async
+    public void sendExtendedFeaturedTrackEmail(String email, String artistName, String trackTitle, Long trackId) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("RESEND_API_KEY is not set. Skipping extended featured track email to {}", email);
+            return;
+        }
+
+        try {
+            String encodedTrackTitle = java.net.URLEncoder.encode(trackTitle, "UTF-8");
+            String trackUrl = "https://mikstermedia.com/songs"; 
+            String shareText = java.net.URLEncoder.encode("My track " + trackTitle + " is blowing up and just got its feature extended on the front page of @MiksterMedia! Let's keep it climbing the charts, you can upvote it here: " + trackUrl, "UTF-8");
+            String twitterUrl = "https://twitter.com/intent/tweet?text=" + shareText;
+            String facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" + java.net.URLEncoder.encode(trackUrl, "UTF-8") + "&quote=" + shareText;
+
+            String htmlContent = "<h2>Hi " + artistName + ",</h2>" +
+                    "<p>Your track <strong>" + trackTitle + "</strong> has been performing incredibly well with the community! Because of its popularity, we have decided to <strong>extend your feature</strong> on the front page of Mikster Media.</p>" +
+                    "<p>Keep the momentum going! We’d love for you to share the good news with your fans so they can continue to upvote your track.</p>" +
+                    "<div style=\"background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 20px 0;\">" +
+                    "  <p style=\"margin-top:0;\"><strong>Share this on social media:</strong></p>" +
+                    "  <p style=\"font-style: italic;\">\"My track " + trackTitle + " is blowing up and just got its feature extended on the front page of @MiksterMedia! Let's keep it climbing the charts, you can upvote it here: " + trackUrl + "\"</p>" +
+                    "  <div style=\"margin-top: 15px;\">" +
+                    "    <a href=\"" + twitterUrl + "\" style=\"display:inline-block; background:#1DA1F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; margin-right:10px;\">Share on X (Twitter)</a>" +
+                    "    <a href=\"" + facebookUrl + "\" style=\"display:inline-block; background:#1877F2; color:white; padding:10px 15px; text-decoration:none; border-radius:5px;\">Share on Facebook</a>" +
+                    "  </div>" +
+                    "</div>" +
+                    "<p>Congratulations again!</p>" +
+                    "<p>— The Mikster Media Team</p>";
+
+            sendResendEmail(email, "Your track is on fire! We've extended your feature on Mikster Media 🔥", htmlContent);
+            log.info("Extended featured track email sent to {} via Resend API", email);
+
+        } catch (Exception e) {
+            log.error("Failed to send extended featured track email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendAdminNotification(Member member) {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             log.warn("RESEND_API_KEY is not set. Skipping admin notification for {}", member.getEmail());

@@ -6,6 +6,8 @@ import com.mikstermedia.model.Track;
 import com.mikstermedia.repository.NewReleaseRepository;
 import com.mikstermedia.repository.TrackRepository;
 import com.mikstermedia.repository.WeeklyChartRepository;
+import com.mikstermedia.repository.ArtistRepository;
+import com.mikstermedia.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ public class TrackService {
     private final NewReleaseRepository   newReleaseRepository;
     private final WeeklyChartRepository  weeklyChartRepository;
     private final WeeklyChartService     weeklyChartService;
+    private final ArtistRepository       artistRepository;
+    private final EmailService           emailService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // READ operations
@@ -135,6 +139,15 @@ public class TrackService {
         track.setFeaturedStatus(true);
         log.info("Extended featured for track id={} '{}' by {} days → until {}",
                  id, track.getTitle(), days, track.getFeaturedUntil());
+                 
+        if (track.getCreator() != null && !track.getCreator().isBlank()) {
+            artistRepository.findByNameIgnoreCase(track.getCreator()).ifPresent(artist -> {
+                if (artist.getEmail() != null && !artist.getEmail().isBlank()) {
+                    emailService.sendExtendedFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
+                }
+            });
+        }
+
         return trackRepository.save(track);
     }
 
