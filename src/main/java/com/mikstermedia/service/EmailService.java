@@ -120,7 +120,7 @@ public class EmailService {
                     "<p>Congratulations again!</p>" +
                     "<p>— The Mikster Media Team</p>";
 
-            sendResendEmail(email, "Your track is on fire! We've extended your feature on Mikster Media", htmlContent);
+            sendResendEmail(email, "Your track feature on Mikster Media has been extended!", htmlContent);
             log.info("Extended featured track email sent to {} via Resend API", email);
 
         } catch (Exception e) {
@@ -190,7 +190,7 @@ public class EmailService {
                     "<p>Congratulations again!</p>" +
                     "<p>— The Mikster Media Team</p>";
 
-            sendResendEmail(email, "Your profile is on fire! We've extended your feature on Mikster Media", htmlContent);
+            sendResendEmail(email, "Your profile feature on Mikster Media has been extended!", htmlContent);
             log.info("Extended featured artist email sent to {} via Resend API", email);
 
         } catch (Exception e) {
