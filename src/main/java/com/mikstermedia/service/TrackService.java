@@ -131,6 +131,7 @@ public class TrackService {
     public Track extendFeatured(Long id, int days) {
         if (days < 1 || days > 365) throw new IllegalArgumentException("days must be 1–365");
         Track track = getTrackById(id);
+        boolean wasFeatured = track.isFeaturedStatus();
         LocalDate today = LocalDate.now();
         LocalDate base = (track.getFeaturedUntil() != null && track.getFeaturedUntil().isAfter(today))
                          ? track.getFeaturedUntil()   // extend from current expiry
@@ -141,11 +142,19 @@ public class TrackService {
                  id, track.getTitle(), days, track.getFeaturedUntil());
                  
         if (track.getCreatorEmail() != null && !track.getCreatorEmail().isBlank()) {
-            emailService.sendExtendedFeaturedTrackEmail(track.getCreatorEmail(), track.getCreator(), track.getTitle(), track.getId());
+            if (wasFeatured) {
+                emailService.sendExtendedFeaturedTrackEmail(track.getCreatorEmail(), track.getCreator(), track.getTitle(), track.getId());
+            } else {
+                emailService.sendFeaturedTrackEmail(track.getCreatorEmail(), track.getCreator(), track.getTitle(), track.getId());
+            }
         } else if (track.getCreator() != null && !track.getCreator().isBlank()) {
             artistRepository.findByNameIgnoreCase(track.getCreator()).ifPresent(artist -> {
                 if (artist.getEmail() != null && !artist.getEmail().isBlank()) {
-                    emailService.sendExtendedFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
+                    if (wasFeatured) {
+                        emailService.sendExtendedFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
+                    } else {
+                        emailService.sendFeaturedTrackEmail(artist.getEmail(), artist.getName(), track.getTitle(), track.getId());
+                    }
                 }
             });
         }
