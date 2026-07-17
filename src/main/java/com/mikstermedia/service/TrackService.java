@@ -83,7 +83,7 @@ public class TrackService {
     }
 
     public List<Track> getRecentVideos() {
-        return trackRepository.findTop25ByVideoUrlIsNotNullAndVideoUrlNotOrderByIdDesc("");
+        return trackRepository.findTop25ByVideoUrlIsNotNullAndVideoUrlNotOrderByVideoDisplayOrderAscIdDesc("");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -168,14 +168,28 @@ public class TrackService {
      *
      * @param orders list of {id, displayOrder} pairs
      */
+    @Transactional
     public void reorderFeaturedTracks(List<TrackOrderDTO> orders) {
-        log.info("Reordering {} featured tracks", orders.size());
-        orders.forEach(o -> {
-            trackRepository.findById(o.getId()).ifPresent(track -> {
-                track.setDisplayOrder(o.getDisplayOrder());
-                trackRepository.save(track);
+        for (TrackOrderDTO order : orders) {
+            trackRepository.findById(order.getId()).ifPresent(t -> {
+                t.setDisplayOrder(order.getDisplayOrder());
+                trackRepository.save(t);
             });
-        });
+        }
+    }
+
+    /**
+     * Admin-only: bulk-updates videoDisplayOrder for a list of music videos.
+     * @param orders list of {id, displayOrder} pairs
+     */
+    @Transactional
+    public void reorderVideos(List<TrackOrderDTO> orders) {
+        for (TrackOrderDTO order : orders) {
+            trackRepository.findById(order.getId()).ifPresent(t -> {
+                t.setVideoDisplayOrder(order.getDisplayOrder());
+                trackRepository.save(t);
+            });
+        }
     }
 
     /**

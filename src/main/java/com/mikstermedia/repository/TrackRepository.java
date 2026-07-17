@@ -30,7 +30,7 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     List<Track> findByCreatorContainingIgnoreCase(String creator);
 
     /** Fetch recent tracks that have a video url. */
-    List<Track> findTop25ByVideoUrlIsNotNullAndVideoUrlNotOrderByIdDesc(String emptyString);
+    List<Track> findTop25ByVideoUrlIsNotNullAndVideoUrlNotOrderByVideoDisplayOrderAscIdDesc(String emptyString);
     
     /** Exact match for creator profile pages. */
     List<Track> findByCreatorIgnoreCase(String creator);

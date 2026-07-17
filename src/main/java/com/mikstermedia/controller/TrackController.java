@@ -152,4 +152,13 @@ public class TrackController {
         trackService.reorderFeaturedTracks(orders);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * PUT /api/tracks/videos/reorder — admin bulk-updates videoDisplayOrder for videos.
+     */
+    @PutMapping("/videos/reorder")
+    public ResponseEntity<Void> reorderVideos(@RequestBody List<TrackOrderDTO> orders) {
+        trackService.reorderVideos(orders);
+        return ResponseEntity.noContent().build();
+    }
 }

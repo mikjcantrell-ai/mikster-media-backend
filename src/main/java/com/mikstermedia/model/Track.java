@@ -87,6 +87,13 @@ public class Track {
     private int displayOrder = 0;
 
     /**
+     * Admin-controlled display order for the music videos page.
+     * Lower values appear first. Defaults to 0 (insertion order).
+     */
+    @Column(name = "video_display_order", nullable = false)
+    private int videoDisplayOrder = 0;
+
+    /**
      * Optional iframe-ready embed URL for inline playback.
      *
      * Platform formats:
