@@ -35,6 +35,18 @@ public class TrackService {
     private final ArtistRepository       artistRepository;
     private final EmailService           emailService;
 
+    @jakarta.annotation.PostConstruct
+    public void migrateUpvotesOnStartup() {
+        try {
+            int restored = trackRepository.restoreUpvotesFromWeeklyChart();
+            if (restored > 0) {
+                log.info("Successfully restored {} upvotes from weekly_chart to track table!", restored);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to restore upvotes: {}", e.getMessage());
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // READ operations
     // ─────────────────────────────────────────────────────────────────────────

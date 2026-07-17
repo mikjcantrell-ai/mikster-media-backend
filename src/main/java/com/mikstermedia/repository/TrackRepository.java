@@ -39,4 +39,12 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     @org.springframework.data.jpa.repository.Query(
         "SELECT COUNT(DISTINCT t.platformSource) FROM Track t WHERE t.platformSource IS NOT NULL")
     long countDistinctPlatforms();
+
+    /** Temporary migration method to restore upvotes */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(
+        value = "UPDATE track t JOIN weekly_chart w ON w.track_id = t.id SET t.upvote_count = w.upvote_count WHERE w.upvote_count > 0 AND (t.upvote_count IS NULL OR t.upvote_count = 0)", 
+        nativeQuery = true)
+    int restoreUpvotesFromWeeklyChart();
 }
