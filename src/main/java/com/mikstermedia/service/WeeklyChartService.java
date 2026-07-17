@@ -41,20 +41,10 @@ public class WeeklyChartService {
                     entry.setTrack(track);
                     entry.setCurrentRank(99);
                     entry.setPreviousRank(null);
-                    entry.setUpvoteCount(0);
                     entry.setWeeklyPlays(0);
                     entry.setRankChange("NEW");
                     return weeklyChartRepository.save(entry);
                 });
-    }
-
-    public WeeklyChart upvote(Long chartId) {
-        WeeklyChart entry = weeklyChartRepository.findById(chartId)
-                .orElseThrow(() -> new RuntimeException("Chart entry not found: " + chartId));
-        entry.setUpvoteCount(entry.getUpvoteCount() + 1);
-        weeklyChartRepository.save(entry);
-        recalculateRankings();
-        return weeklyChartRepository.findById(chartId).orElseThrow();
     }
 
     public WeeklyChart recordPlay(Long chartId) {
@@ -117,7 +107,6 @@ public class WeeklyChartService {
             if (entry == null) {
                 entry = new WeeklyChart();
                 entry.setTrack(t);
-                entry.setUpvoteCount(0);
                 entry.setWeeklyPlays(0);
                 entry.setPreviousRank(null);
             } else {
@@ -127,9 +116,6 @@ public class WeeklyChartService {
             }
             newChart.add(entry);
         }
-
-        // 7. Sort the newChart by TOTAL score (global + local upvotes) to determine 1-10 order
-        newChart.sort((a, b) -> Double.compare(computeTotalScore(b), computeTotalScore(a)));
 
         // 8. Assign currentRank and rankChange
         for (int i = 0; i < newChart.size(); i++) {
@@ -171,14 +157,9 @@ public class WeeklyChartService {
             track.setLastWeekUdioPlays(track.getUdioPlays() != null ? track.getUdioPlays() : 0);
             track.setLastWeekUdioLikes(track.getUdioLikes() != null ? track.getUdioLikes() : 0);
             track.setLastWeekChartmetricScore(track.getChartmetricScore() != null ? track.getChartmetricScore() : 0);
+            track.setLastWeekUpvotes(track.getUpvoteCount() != null ? track.getUpvoteCount() : 0);
         }
         trackRepository.saveAll(allTracks);
-
-        List<WeeklyChart> charts = weeklyChartRepository.findAll();
-        for (WeeklyChart chart : charts) {
-            chart.setUpvoteCount(0);
-        }
-        weeklyChartRepository.saveAll(charts);
 
         log.info("Weekly snapshot taken. Stats and upvotes reset.");
         recalculateRankings();
@@ -195,6 +176,8 @@ public class WeeklyChartService {
         int weeklyUdioPlays = Math.max(0, (track.getUdioPlays() != null ? track.getUdioPlays() : 0) - (track.getLastWeekUdioPlays() != null ? track.getLastWeekUdioPlays() : 0));
         int weeklyUdioLikes = Math.max(0, (track.getUdioLikes() != null ? track.getUdioLikes() : 0) - (track.getLastWeekUdioLikes() != null ? track.getLastWeekUdioLikes() : 0));
         int weeklyTiktokViews = Math.max(0, (track.getTiktokViews() != null ? track.getTiktokViews() : 0) - (track.getLastWeekTiktokViews() != null ? track.getLastWeekTiktokViews() : 0));
+        int weeklyLocalUpvotes = Math.max(0, (track.getUpvoteCount() != null ? track.getUpvoteCount() : 0) - (track.getLastWeekUpvotes() != null ? track.getLastWeekUpvotes() : 0));
+        
         double weeklyScore = (weeklySpotifyPop * 10.0) 
              + (weeklyLastFmScrobbles / 1000.0) 
              + (weeklyYoutubeViews / 250.0)
@@ -202,7 +185,8 @@ public class WeeklyChartService {
              + (weeklySunoLikes / 50.0)
              + (weeklyUdioPlays / 500.0)
              + (weeklyUdioLikes / 50.0)
-             + (weeklyTiktokViews / 50000.0);
+             + (weeklyTiktokViews / 50000.0)
+             + (weeklyLocalUpvotes * UPVOTE_WEIGHT);
 
         // Calculate Lifetime Totals (used primarily as a fallback / tie-breaker)
         int totalSpotifyPop = track.getSpotifyPopularity() != null ? track.getSpotifyPopularity() : 0;
@@ -213,6 +197,7 @@ public class WeeklyChartService {
         int totalUdioPlays = track.getUdioPlays() != null ? track.getUdioPlays() : 0;
         int totalUdioLikes = track.getUdioLikes() != null ? track.getUdioLikes() : 0;
         int totalTiktokViews = track.getTiktokViews() != null ? track.getTiktokViews() : 0;
+        int totalLocalUpvotes = track.getUpvoteCount() != null ? track.getUpvoteCount() : 0;
         
         double lifetimeScore = (totalSpotifyPop * 10.0) 
              + (totalLastFmScrobbles / 100.0) 
@@ -221,7 +206,8 @@ public class WeeklyChartService {
              + (totalSunoLikes / 50.0)
              + (totalUdioPlays / 500.0)
              + (totalUdioLikes / 50.0)
-             + (totalTiktokViews / 10000.0);
+             + (totalTiktokViews / 10000.0)
+             + (totalLocalUpvotes * UPVOTE_WEIGHT);
 
         // The final raw score is the weekly growth score, PLUS 1% of the lifetime score.
         // This ensures that weekly growth dictates the chart, but if there's no weekly data (or a tie),
@@ -251,10 +237,7 @@ public class WeeklyChartService {
         return rawScore * freshnessMultiplier;
     }
 
-    private double computeTotalScore(WeeklyChart entry) {
-        double localScore = (entry.getUpvoteCount() * UPVOTE_WEIGHT);
-        return computeGlobalScore(entry.getTrack()) + localScore;
-    }
+
 
     private static class TrackScore {
         Track track;

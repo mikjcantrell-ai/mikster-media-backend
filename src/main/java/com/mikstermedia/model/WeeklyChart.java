@@ -42,10 +42,6 @@ public class WeeklyChart {
     @Column(name = "previous_rank")
     private Integer previousRank;
 
-    /** Cumulative upvotes cast by platform users this week. */
-    @Column(name = "upvote_count", nullable = false)
-    private Integer upvoteCount = 0;
-
     /** Number of in-platform stream plays recorded this week. */
     @Column(name = "weekly_plays", nullable = false)
     private Integer weeklyPlays = 0;

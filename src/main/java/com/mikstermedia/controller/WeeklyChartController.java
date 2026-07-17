@@ -70,15 +70,7 @@ public class WeeklyChartController {
         return ResponseEntity.ok(weeklyChartService.addToChart(track));
     }
 
-    /**
-     * POST /api/charts/{id}/upvote
-     * Records one upvote for the chart entry and triggers score recalculation.
-     * Angular upvote button calls this; the response reflects updated rank.
-     */
-    @PostMapping("/{id}/upvote")
-    public ResponseEntity<WeeklyChart> upvote(@PathVariable Long id) {
-        return ResponseEntity.ok(weeklyChartService.upvote(id));
-    }
+
 
     /**
      * POST /api/charts/{id}/play

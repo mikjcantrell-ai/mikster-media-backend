@@ -193,6 +193,20 @@ public class TrackService {
     }
 
     /**
+     * Increments the upvoteCount on a Track and recalculates the global charts.
+     */
+    @Transactional
+    public Track upvote(Long trackId) {
+        Track track = getTrackById(trackId);
+        track.setUpvoteCount((track.getUpvoteCount() != null ? track.getUpvoteCount() : 0) + 1);
+        Track saved = trackRepository.save(track);
+        
+        // Trigger a global chart recalculation so this track can rise organically
+        weeklyChartService.recalculateRankings();
+        return saved;
+    }
+
+    /**
      * Hard-deletes a track and all dependent records.
      * Removes NewRelease and WeeklyChart rows first to avoid FK constraint violations.
      */

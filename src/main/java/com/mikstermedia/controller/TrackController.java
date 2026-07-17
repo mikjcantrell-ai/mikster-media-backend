@@ -161,4 +161,13 @@ public class TrackController {
         trackService.reorderVideos(orders);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * POST /api/tracks/{id}/upvote
+     * Increments the upvoteCount on the track and recalculates rankings.
+     */
+    @PostMapping("/{id}/upvote")
+    public ResponseEntity<Track> upvote(@PathVariable Long id) {
+        return ResponseEntity.ok(trackService.upvote(id));
+    }
 }

@@ -157,6 +157,10 @@ public class Track {
     @Column(name = "chartmetric_score")
     private Integer chartmetricScore = 0;
 
+    /** Total upvotes tracked directly on the Track */
+    @Column(name = "upvote_count")
+    private Integer upvoteCount = 0;
+
     /**
      * Chartmetric internal track ID — resolved once via their search API using the
      * Spotify track ID, then stored here for all future stat refreshes.
@@ -194,6 +198,9 @@ public class Track {
 
     @Column(name = "last_week_chartmetric_score")
     private Integer lastWeekChartmetricScore = 0;
+
+    @Column(name = "last_week_upvotes")
+    private Integer lastWeekUpvotes = 0;
 
     @Column(name = "tiktok_views")
     private Integer tiktokViews = 0;

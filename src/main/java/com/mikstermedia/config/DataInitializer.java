@@ -250,9 +250,13 @@ public class DataInitializer implements CommandLineRunner {
         int max = Math.min(tracks.size(), 10);
         for (int i = 0; i < max; i++) {
             WeeklyChart entry = new WeeklyChart();
-            entry.setTrack(tracks.get(i));
-            entry.setWeeklyPlays(seedMetrics[i][0]);
-            entry.setUpvoteCount(seedMetrics[i][1]);
+            Track track = tracks.get(i);
+            int[] metrics = seedMetrics[i];
+            entry.setTrack(track);
+            entry.setWeeklyPlays(metrics[0]);
+            track.setUpvoteCount(metrics[1]);
+            track.setLastWeekUpvotes(0);
+            trackRepository.save(track);
             entry.setCurrentRank(i + 1);
             entry.setPreviousRank(i + 2 <= 10 ? i + 2 : null);
             entry.setRankChange(i == 0 ? "NEW" : (i % 3 == 0 ? "DOWN" : "UP"));
