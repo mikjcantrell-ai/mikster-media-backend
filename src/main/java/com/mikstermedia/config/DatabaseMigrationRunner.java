@@ -16,25 +16,27 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        log.info("Starting database migrations...");
+        log.info("Starting database migrations in a background thread to prevent startup hanging...");
 
-        try {
-            int restored = trackRepository.restoreUpvotesFromWeeklyChart();
-            if (restored > 0) {
-                log.info("Successfully restored {} upvotes from weekly_chart to track table!", restored);
+        new Thread(() -> {
+            try {
+                int restored = trackRepository.restoreUpvotesFromWeeklyChart();
+                if (restored > 0) {
+                    log.info("Successfully restored {} upvotes from weekly_chart to track table!", restored);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to restore upvotes: {}", e.getMessage());
             }
-        } catch (Exception e) {
-            log.warn("Failed to restore upvotes: {}", e.getMessage());
-        }
 
-        try {
-            // Fix the 500 error by allowing NULLs on the orphaned upvote_count column
-            trackRepository.alterWeeklyChartToAllowNulls();
-            log.info("Successfully altered weekly_chart.upvote_count to allow NULLs");
-        } catch (Exception e) {
-            log.warn("Failed to alter weekly_chart (column might not exist or already nullable): {}", e.getMessage());
-        }
+            try {
+                // Fix the 500 error by allowing NULLs on the orphaned upvote_count column
+                trackRepository.alterWeeklyChartToAllowNulls();
+                log.info("Successfully altered weekly_chart.upvote_count to allow NULLs");
+            } catch (Exception e) {
+                log.warn("Failed to alter weekly_chart (column might not exist or already nullable): {}", e.getMessage());
+            }
 
-        log.info("Database migrations completed.");
+            log.info("Database migrations completed.");
+        }).start();
     }
 }
