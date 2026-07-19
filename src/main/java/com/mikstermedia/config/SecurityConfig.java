@@ -54,8 +54,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/collabs").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/inquiries").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/submissions").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/tracks/{id}/upvote").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/charts/{id}/play").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/tracks/**/upvote").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/charts/**/play").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/admin/migrations/run").permitAll()
                 // Admin-only write operations
                 .requestMatchers(HttpMethod.POST,    "/api/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT,     "/api/**").hasRole("ADMIN")
