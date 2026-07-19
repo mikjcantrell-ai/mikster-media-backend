@@ -60,7 +60,6 @@ public class WeeklyChartService {
      * Recalculates rankings globally.
      */
     @Transactional
-    @EventListener(ApplicationReadyEvent.class)
     public void recalculateRankings() {
         List<Track> allTracks = trackRepository.findAll();
 
