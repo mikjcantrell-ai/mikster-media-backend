@@ -37,25 +37,7 @@ public class TrackService {
 
 
 
-    @jakarta.annotation.PostConstruct
-    public void migrateUpvotesOnStartup() {
-        try {
-            int restored = trackRepository.restoreUpvotesFromWeeklyChart();
-            if (restored > 0) {
-                log.info("Successfully restored {} upvotes from weekly_chart to track table!", restored);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to restore upvotes: {}", e.getMessage());
-        }
 
-        try {
-            // Fix the 500 error by allowing NULLs on the orphaned upvote_count column
-            trackRepository.alterWeeklyChartToAllowNulls();
-            log.info("Successfully altered weekly_chart.upvote_count to allow NULLs");
-        } catch (Exception e) {
-            log.warn("Failed to alter weekly_chart (column might not exist or already nullable): {}", e.getMessage());
-        }
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // READ operations
