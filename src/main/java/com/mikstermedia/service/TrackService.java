@@ -35,6 +35,8 @@ public class TrackService {
     private final ArtistRepository       artistRepository;
     private final EmailService           emailService;
 
+
+
     @jakarta.annotation.PostConstruct
     public void migrateUpvotesOnStartup() {
         try {
@@ -44,6 +46,14 @@ public class TrackService {
             }
         } catch (Exception e) {
             log.warn("Failed to restore upvotes: {}", e.getMessage());
+        }
+
+        try {
+            // Fix the 500 error by allowing NULLs on the orphaned upvote_count column
+            trackRepository.alterWeeklyChartToAllowNulls();
+            log.info("Successfully altered weekly_chart.upvote_count to allow NULLs");
+        } catch (Exception e) {
+            log.warn("Failed to alter weekly_chart (column might not exist or already nullable): {}", e.getMessage());
         }
     }
 
