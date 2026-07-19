@@ -55,8 +55,8 @@ public class MigrationController {
                 String command = (String) row[4];
                 Integer time = ((Number) row[5]).intValue();
                 
-                // Kill any sleeping connections older than 60 seconds
-                if ("Sleep".equalsIgnoreCase(command) && time > 60) {
+                // Kill ANY connection (Query or Sleep) older than 30 seconds
+                if (time > 30) {
                     try {
                         em.createNativeQuery("KILL " + id).executeUpdate();
                         result.append("Killed connection ID ").append(id).append(" (sleeping for ").append(time).append("s)\n");

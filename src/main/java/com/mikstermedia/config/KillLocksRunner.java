@@ -27,8 +27,8 @@ public class KillLocksRunner implements ApplicationRunner {
                 String command = (String) row[4];
                 Integer time = ((Number) row[5]).intValue();
                 
-                // Kill any sleeping connections older than 10 seconds to clear locks
-                if ("Sleep".equalsIgnoreCase(command) && time > 10) {
+                // Kill ANY connection (Query or Sleep) older than 30 seconds
+                if (time > 30) {
                     try {
                         em.createNativeQuery("KILL " + id).executeUpdate();
                         log.info("Killed zombie connection ID {} (sleeping for {}s)", id, time);
