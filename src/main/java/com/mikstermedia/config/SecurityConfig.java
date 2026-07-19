@@ -44,6 +44,7 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public: GET and OPTIONS
+                .requestMatchers(HttpMethod.GET,     "/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET,     "/api/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS,  "/**").permitAll()
                 // Public write operations (community join, contact form)
