@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MigrationController {
 
     private final TrackRepository trackRepository;
+    private final jakarta.persistence.EntityManager em;
 
     @PostMapping("/run")
     public ResponseEntity<String> runMigrations() {
@@ -39,6 +40,34 @@ public class MigrationController {
             log.warn("Failed to alter weekly_chart: {}", e.getMessage());
         }
 
+        return ResponseEntity.ok(result.toString());
+    }
+
+    @PostMapping("/kill-locks")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<String> killLocks() {
+        log.info("Attempting to kill zombie MySQL connections...");
+        StringBuilder result = new StringBuilder("Killed Connections:\n");
+        try {
+            java.util.List<Object[]> processList = em.createNativeQuery("SHOW FULL PROCESSLIST").getResultList();
+            for (Object[] row : processList) {
+                Long id = ((Number) row[0]).longValue();
+                String command = (String) row[4];
+                Integer time = ((Number) row[5]).intValue();
+                
+                // Kill any sleeping connections older than 60 seconds
+                if ("Sleep".equalsIgnoreCase(command) && time > 60) {
+                    try {
+                        em.createNativeQuery("KILL " + id).executeUpdate();
+                        result.append("Killed connection ID ").append(id).append(" (sleeping for ").append(time).append("s)\n");
+                    } catch (Exception killEx) {
+                        result.append("Failed to kill connection ID ").append(id).append(": ").append(killEx.getMessage()).append("\n");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to read process list: " + e.getMessage());
+        }
         return ResponseEntity.ok(result.toString());
     }
 }
