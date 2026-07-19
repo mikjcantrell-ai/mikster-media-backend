@@ -167,7 +167,12 @@ public class TrackController {
      * Increments the upvoteCount on the track and recalculates rankings.
      */
     @PostMapping("/{id}/upvote")
-    public ResponseEntity<Track> upvote(@PathVariable Long id) {
-        return ResponseEntity.ok(trackService.upvote(id));
+    public ResponseEntity<?> upvote(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(trackService.upvote(id));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : "null") + " | Stack: " + java.util.Arrays.toString(e.getStackTrace()));
+        }
     }
 }
