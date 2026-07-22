@@ -70,4 +70,21 @@ public class MigrationController {
         }
         return ResponseEntity.ok(result.toString());
     }
+    @org.springframework.web.bind.annotation.GetMapping("/logs")
+    public ResponseEntity<String> getLogs() {
+        try {
+            java.nio.file.Path logFile = java.nio.file.Paths.get("application.log");
+            if (!java.nio.file.Files.exists(logFile)) {
+                return ResponseEntity.ok("Log file not found.");
+            }
+            String logs = java.nio.file.Files.readString(logFile);
+            // Return only the last 50000 characters if it's too large
+            if (logs.length() > 50000) {
+                logs = logs.substring(logs.length() - 50000);
+            }
+            return ResponseEntity.ok(logs);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error reading logs: " + e.getMessage());
+        }
+    }
 }
