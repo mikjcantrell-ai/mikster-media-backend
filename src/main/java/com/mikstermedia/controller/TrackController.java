@@ -90,12 +90,16 @@ public class TrackController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    /** PUT /api/tracks/{id} — full update of an existing track */
     @PutMapping("/{id}")
-    public ResponseEntity<Track> updateTrack(
+    public ResponseEntity<?> updateTrack(
             @PathVariable Long id,
             @Valid @RequestBody TrackDTO dto) {
-        return ResponseEntity.ok(trackService.updateTrack(id, dto));
+        try {
+            return ResponseEntity.ok(trackService.updateTrack(id, dto));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : "null") + " | Stack: " + java.util.Arrays.toString(e.getStackTrace()));
+        }
     }
 
     /**
