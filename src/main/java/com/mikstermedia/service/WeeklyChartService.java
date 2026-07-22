@@ -136,9 +136,9 @@ public class WeeklyChartService {
 
         // 9. Save new chart and delete stale entries
         log.info("Saving newChart of size: " + newChart.size());
-        weeklyChartRepository.saveAll(newChart);
+        weeklyChartRepository.saveAllAndFlush(newChart);
         log.info("Deleting stale entries: " + existingMap.values().size());
-        weeklyChartRepository.deleteAll(existingMap.values());
+        weeklyChartRepository.deleteAllInBatch(existingMap.values());
         
         log.info("Global Top 10 chart recalculated.");
     }

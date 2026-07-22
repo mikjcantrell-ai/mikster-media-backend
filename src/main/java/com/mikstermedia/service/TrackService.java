@@ -117,7 +117,7 @@ public class TrackService {
         Track existing = getTrackById(id);
         mapDtoToEntity(dto, existing);
         log.info("Updating track id={}", id);
-        Track saved = trackRepository.save(existing);
+        Track saved = trackRepository.saveAndFlush(existing);
         weeklyChartService.recalculateRankings();
         return saved;
     }
