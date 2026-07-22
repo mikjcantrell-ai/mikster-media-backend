@@ -42,6 +42,14 @@ public class WeeklyChart {
     @Column(name = "previous_rank")
     private Integer previousRank;
 
+    /** 
+     * Deprecated: Upvotes have been moved to the Track entity permanently. 
+     * This field remains mapped solely to satisfy the existing NOT NULL constraint 
+     * on the 'upvote_count' column in the production database until it is safely dropped. 
+     */
+    @Column(name = "upvote_count", nullable = false)
+    private Integer upvoteCount = 0;
+
     /** Number of in-platform stream plays recorded this week. */
     @Column(name = "weekly_plays", nullable = false)
     private Integer weeklyPlays = 0;

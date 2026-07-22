@@ -179,4 +179,14 @@ public class TrackController {
             return ResponseEntity.internalServerError().body(e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : "null") + " | Stack: " + java.util.Arrays.toString(e.getStackTrace()));
         }
     }
+
+    /**
+     * POST /api/tracks/restore-upvotes
+     * One-off admin endpoint to recover lost upvotes from the old weekly_charts schema.
+     */
+    @PostMapping("/restore-upvotes")
+    public ResponseEntity<String> restoreUpvotes() {
+        int restored = trackService.restoreLostUpvotes();
+        return ResponseEntity.ok("Successfully restored upvotes for " + restored + " tracks.");
+    }
 }
