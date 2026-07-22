@@ -94,3 +94,12 @@ public class SecurityConfig {
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }
+
+@org.springframework.web.bind.annotation.ControllerAdvice
+class GlobalExceptionHandler {
+    @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
+    public org.springframework.http.ResponseEntity<String> handleException(Exception e) {
+        e.printStackTrace();
+        return org.springframework.http.ResponseEntity.status(500).body("GLOBAL CATCH: " + e.toString() + " | " + java.util.Arrays.toString(e.getStackTrace()));
+    }
+}
