@@ -186,7 +186,12 @@ public class TrackController {
      */
     @PostMapping("/restore-upvotes")
     public ResponseEntity<String> restoreUpvotes() {
-        int restored = trackService.restoreLostUpvotes();
-        return ResponseEntity.ok("Successfully restored upvotes for " + restored + " tracks.");
+        try {
+            int restored = trackService.restoreLostUpvotes();
+            return ResponseEntity.ok("Successfully restored upvotes for " + restored + " tracks.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : "null") + " | Stack: " + java.util.Arrays.toString(e.getStackTrace()));
+        }
     }
 }
