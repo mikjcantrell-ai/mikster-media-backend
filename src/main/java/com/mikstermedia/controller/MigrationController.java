@@ -23,7 +23,7 @@ public class MigrationController {
         StringBuilder result = new StringBuilder("Migration Results:\n");
 
         try {
-            int restored = trackRepository.restoreUpvotesFromWeeklyChart();
+            int restored = trackRepository.restoreUpvotesNative();
             result.append("Restored ").append(restored).append(" upvotes.\n");
             log.info("Successfully restored {} upvotes from weekly_chart to track table!", restored);
         } catch (Exception e) {
