@@ -224,24 +224,16 @@ public class TrackService {
     }
 
     /**
-     * One-off migration: Restores lost upvotes by copying them from the old 
+     * One-off migration: Restores lost upvotes by adding them from the old 
      * upvote_count column in the weekly_charts table back to the tracks table.
      */
     @Transactional
     public int restoreLostUpvotes() {
         log.info("Restoring lost upvotes from weekly_charts...");
-        List<com.mikstermedia.model.WeeklyChart> charts = weeklyChartRepository.findAll();
-        int restored = 0;
-        for (com.mikstermedia.model.WeeklyChart chart : charts) {
-            if (chart.getUpvoteCount() != null && chart.getUpvoteCount() > 0) {
-                Track t = chart.getTrack();
-                if (t.getUpvoteCount() == null || t.getUpvoteCount() < chart.getUpvoteCount()) {
-                    t.setUpvoteCount(chart.getUpvoteCount());
-                    trackRepository.save(t);
-                    restored++;
-                }
-            }
-        }
+        
+        // Use a direct native query to avoid JPA lifecycle and constraint issues
+        int restored = trackRepository.restoreUpvotesNative();
+        
         if (restored > 0) {
             weeklyChartService.recalculateRankings();
         }
