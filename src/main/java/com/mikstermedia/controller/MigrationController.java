@@ -18,7 +18,6 @@ public class MigrationController {
     private final jakarta.persistence.EntityManager em;
 
     @PostMapping("/run")
-    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<String> runMigrations() {
         log.info("Manual migration triggered via API...");
         StringBuilder result = new StringBuilder("Migration Results:\n");
@@ -43,9 +42,7 @@ public class MigrationController {
 
         // Add soundcloud_plays column if not already present
         try {
-            em.createNativeQuery(
-                "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS soundcloud_plays INT DEFAULT 0"
-            ).executeUpdate();
+            trackRepository.addSoundcloudPlaysColumn();
             result.append("Added soundcloud_plays column (or already existed).\n");
             log.info("soundcloud_plays column ensured on tracks table");
         } catch (Exception e) {
@@ -55,9 +52,7 @@ public class MigrationController {
 
         // Clean up accidentally imported non-AI tracks (e.g. Snow Patrol, Daddy Yankee, Snow Man)
         try {
-            int deleted = em.createNativeQuery(
-                "DELETE FROM tracks WHERE id IN (400, 431, 433) OR creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man') OR creator LIKE '%Snow Patrol%'"
-            ).executeUpdate();
+            int deleted = trackRepository.deleteNonAiTracks();
             result.append("Removed ").append(deleted).append(" non-AI tracks.\n");
             log.info("Cleaned up {} non-AI tracks from tracks table", deleted);
         } catch (Exception e) {
