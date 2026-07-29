@@ -55,12 +55,24 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
         nativeQuery = true)
     int alterWeeklyChartToAllowNulls();
 
+    @org.springframework.data.jpa.repository.Query(
+        value = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tracks' AND COLUMN_NAME = 'soundcloud_plays'", 
+        nativeQuery = true)
+    long countSoundcloudPlaysColumn();
+
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Query(
-        value = "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS soundcloud_plays INT DEFAULT 0", 
+        value = "ALTER TABLE tracks ADD COLUMN soundcloud_plays INT DEFAULT 0", 
         nativeQuery = true)
     int addSoundcloudPlaysColumn();
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(
+        value = "DELETE FROM weekly_charts WHERE track_id IN (400, 431, 433) OR track_id IN (SELECT id FROM tracks WHERE creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man') OR creator LIKE '%Snow Patrol%')", 
+        nativeQuery = true)
+    int deleteNonAiWeeklyCharts();
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional

@@ -42,9 +42,13 @@ public class MigrationController {
 
         // Add soundcloud_plays column if not already present
         try {
-            trackRepository.addSoundcloudPlaysColumn();
-            result.append("Added soundcloud_plays column (or already existed).\n");
-            log.info("soundcloud_plays column ensured on tracks table");
+            if (trackRepository.countSoundcloudPlaysColumn() == 0) {
+                trackRepository.addSoundcloudPlaysColumn();
+                result.append("Added soundcloud_plays column.\n");
+            } else {
+                result.append("soundcloud_plays column already present.\n");
+            }
+            log.info("soundcloud_plays column checked/added on tracks table");
         } catch (Exception e) {
             result.append("Failed to add soundcloud_plays: ").append(e.getMessage()).append("\n");
             log.warn("Failed to add soundcloud_plays column: {}", e.getMessage());
@@ -52,9 +56,10 @@ public class MigrationController {
 
         // Clean up accidentally imported non-AI tracks (e.g. Snow Patrol, Daddy Yankee, Snow Man)
         try {
-            int deleted = trackRepository.deleteNonAiTracks();
-            result.append("Removed ").append(deleted).append(" non-AI tracks.\n");
-            log.info("Cleaned up {} non-AI tracks from tracks table", deleted);
+            int chartsDeleted = trackRepository.deleteNonAiWeeklyCharts();
+            int tracksDeleted = trackRepository.deleteNonAiTracks();
+            result.append("Removed ").append(tracksDeleted).append(" non-AI tracks (and ").append(chartsDeleted).append(" chart records).\n");
+            log.info("Cleaned up {} non-AI tracks from tracks table ({} charts)", tracksDeleted, chartsDeleted);
         } catch (Exception e) {
             result.append("Failed to clean up non-AI tracks: ").append(e.getMessage()).append("\n");
             log.warn("Failed to clean up non-AI tracks: {}", e.getMessage());
