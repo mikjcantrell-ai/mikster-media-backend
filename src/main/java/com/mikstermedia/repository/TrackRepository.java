@@ -70,14 +70,14 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Query(
-        value = "DELETE FROM weekly_charts WHERE track_id IN (400, 431, 433) OR track_id IN (SELECT id FROM tracks WHERE creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man') OR creator LIKE '%Snow Patrol%')", 
+        value = "DELETE FROM weekly_charts WHERE track_id IN (400, 431, 433, 430, 432, 442, 439, 440, 441, 446, 447, 448, 449, 450, 451, 452, 453, 468) OR track_id BETWEEN 492 AND 501 OR track_id IN (SELECT id FROM tracks WHERE creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man', 'Snoh Aalegra', 'Snorri Hallgrímsson') OR creator LIKE '%Snow Patrol%' OR creator LIKE '%Mozart%' OR creator LIKE '%Snoh Aalegra%')", 
         nativeQuery = true)
     int deleteNonAiWeeklyCharts();
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Query(
-        value = "DELETE FROM tracks WHERE id IN (400, 431, 433) OR creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man') OR creator LIKE '%Snow Patrol%'", 
+        value = "DELETE FROM tracks WHERE id IN (400, 431, 433, 430, 432, 442, 439, 440, 441, 446, 447, 448, 449, 450, 451, 452, 453, 468) OR id BETWEEN 492 AND 501 OR creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man', 'Snoh Aalegra', 'Snorri Hallgrímsson') OR creator LIKE '%Snow Patrol%' OR creator LIKE '%Mozart%' OR creator LIKE '%Snoh Aalegra%'", 
         nativeQuery = true)
     int deleteNonAiTracks();
 }
