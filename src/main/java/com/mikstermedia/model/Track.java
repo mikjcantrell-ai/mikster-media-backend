@@ -154,6 +154,10 @@ public class Track {
     @Column(name = "udio_likes")
     private Integer udioLikes = 0;
 
+    /** SoundCloud playback count — refreshed by the scheduled job for SC-hosted tracks. */
+    @Column(name = "soundcloud_plays")
+    private Integer soundcloudPlays = 0;
+
     @Column(name = "chartmetric_score")
     private Integer chartmetricScore = 0;
 

@@ -277,6 +277,9 @@ public class TrackService {
         if (dto.getUdioPlays() != null) {
             track.setUdioPlays(dto.getUdioPlays());
         }
+        if (dto.getSoundcloudPlays() != null) {
+            track.setSoundcloudPlays(dto.getSoundcloudPlays());
+        }
         if (dto.getTiktokViews() != null) {
             track.setTiktokViews(dto.getTiktokViews());
         }

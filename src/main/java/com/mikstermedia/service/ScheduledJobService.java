@@ -43,6 +43,7 @@ public class ScheduledJobService {
     private final SpotifyService            spotifyService;
     private final WeeklyChartService        weeklyChartService;
     private final AiDiscoveryService        aiDiscoveryService;
+    private final SoundCloudService         soundCloudService;
     private final PlatformSettingRepository settingRepository;
 
     // ── Scheduled entry point ──────────────────────────────────────────────────
@@ -58,6 +59,7 @@ public class ScheduledJobService {
             refreshTracksAndWait();
             recalculateChart();
             kickOffAiDiscovery();
+            refreshSoundCloudPlays();
         } catch (Exception e) {
             log.error("Scheduled job encountered an error", e);
         }
@@ -127,5 +129,17 @@ public class ScheduledJobService {
         aiDiscoveryService.startDiscoveryFetchWithAutoImport();
         // Intentionally non-blocking — the import runs in its own thread.
         // Progress can be monitored via GET /api/ai-discovery/status.
+    }
+
+    // ── Phase 4: SoundCloud play count refresh ─────────────────────────
+
+    /**
+     * Synchronously refreshes SoundCloud playback counts for all SC-hosted tracks.
+     * Runs after chart recalculation so the new counts feed the next chart cycle.
+     */
+    private void refreshSoundCloudPlays() {
+        log.info("Scheduled: refreshing SoundCloud play counts...");
+        soundCloudService.refreshAllSoundCloudTracks();
+        log.info("Scheduled: SoundCloud play count refresh complete.");
     }
 }

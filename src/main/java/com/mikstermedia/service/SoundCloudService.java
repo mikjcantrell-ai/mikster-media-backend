@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * SoundCloud track search service for Platform Discovery.
@@ -170,5 +171,72 @@ public class SoundCloudService {
         result.setAlreadyImported(exists);
 
         return result;
+    }
+
+    // ── Play count refresh ───────────────────────────────────────────────────
+
+    /**
+     * Fetches the live playback count for a single SoundCloud track URL.
+     * Uses the SoundCloud resolve API which returns the full track object.
+     *
+     * @param permalinkUrl full SoundCloud permalink, e.g. https://soundcloud.com/artist/track
+     * @return playback count, or null if unavailable / client_id not configured
+     */
+    public Integer getPlaybackCount(String permalinkUrl) {
+        if (!isConfigured() || permalinkUrl == null || !permalinkUrl.contains("soundcloud.com"))
+            return null;
+        try {
+            String url = "https://api-v2.soundcloud.com/resolve?url="
+                       + URLEncoder.encode(permalinkUrl, StandardCharsets.UTF_8)
+                       + "&client_id=" + clientId;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resp = restTemplate.getForObject(url, Map.class);
+            if (resp != null && resp.get("playback_count") instanceof Number n) {
+                return n.intValue();
+            }
+        } catch (Exception e) {
+            log.warn("SoundCloud resolve failed for {}: {}", permalinkUrl, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Iterates all SoundCloud-hosted tracks in the library and refreshes their
+     * {@code soundcloudPlays} field from the live SoundCloud API.
+     * Called by {@link ScheduledJobService} as part of the nightly refresh.
+     */
+    public void refreshAllSoundCloudTracks() {
+        if (!isConfigured()) {
+            log.info("SoundCloud client_id not configured — skipping SC play count refresh");
+            return;
+        }
+        var scTracks = trackRepository.findAll().stream()
+            .filter(t -> "SoundCloud".equalsIgnoreCase(t.getPlatformSource())
+                      || (t.getMediaUrl() != null && t.getMediaUrl().contains("soundcloud.com")))
+            .collect(Collectors.toList());
+
+        log.info("Refreshing SoundCloud play counts for {} tracks", scTracks.size());
+        int updated = 0;
+        for (var track : scTracks) {
+            try {
+                Integer plays = getPlaybackCount(track.getMediaUrl());
+                if (plays != null) {
+                    track.setSoundcloudPlays(plays);
+                    trackRepository.save(track);
+                    updated++;
+                }
+                Thread.sleep(200); // stay well within SC rate limits
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.warn("SC play count refresh failed for track id={}: {}", track.getId(), e.getMessage());
+            }
+        }
+        log.info("SoundCloud play count refresh complete: {}/{} tracks updated", updated, scTracks.size());
+    }
+
+    private boolean isConfigured() {
+        return clientId != null && !clientId.isBlank();
     }
 }

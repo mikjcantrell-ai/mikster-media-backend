@@ -21,6 +21,7 @@ public class TrackDTO {
     private Long youtubeViews;
     private Integer sunoPlays;
     private Integer udioPlays;
+    private Integer soundcloudPlays;
     private Integer tiktokViews;
     private Integer chartmetricScore;
     private String releaseDate;
@@ -63,6 +64,8 @@ public class TrackDTO {
     public void setSunoPlays(Integer sunoPlays) { this.sunoPlays = sunoPlays; }
     public Integer getUdioPlays()      { return udioPlays; }
     public void setUdioPlays(Integer udioPlays) { this.udioPlays = udioPlays; }
+    public Integer getSoundcloudPlays() { return soundcloudPlays; }
+    public void setSoundcloudPlays(Integer soundcloudPlays) { this.soundcloudPlays = soundcloudPlays; }
     public Integer getTiktokViews()       { return tiktokViews; }
     public void setTiktokViews(Integer tiktokViews) { this.tiktokViews = tiktokViews; }
     public Integer getChartmetricScore() { return chartmetricScore; }
