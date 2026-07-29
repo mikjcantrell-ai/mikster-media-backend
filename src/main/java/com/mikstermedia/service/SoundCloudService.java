@@ -235,8 +235,4 @@ public class SoundCloudService {
         }
         log.info("SoundCloud play count refresh complete: {}/{} tracks updated", updated, scTracks.size());
     }
-
-    private boolean isConfigured() {
-        return clientId != null && !clientId.isBlank();
-    }
 }
