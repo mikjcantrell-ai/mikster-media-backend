@@ -40,6 +40,30 @@ public class MigrationController {
             log.warn("Failed to alter weekly_chart: {}", e.getMessage());
         }
 
+        // Add soundcloud_plays column if not already present
+        try {
+            em.createNativeQuery(
+                "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS soundcloud_plays INT DEFAULT 0"
+            ).executeUpdate();
+            result.append("Added soundcloud_plays column (or already existed).\n");
+            log.info("soundcloud_plays column ensured on tracks table");
+        } catch (Exception e) {
+            result.append("Failed to add soundcloud_plays: ").append(e.getMessage()).append("\n");
+            log.warn("Failed to add soundcloud_plays column: {}", e.getMessage());
+        }
+
+        // Clean up accidentally imported non-AI tracks (e.g. Snow Patrol, Daddy Yankee, Snow Man)
+        try {
+            int deleted = em.createNativeQuery(
+                "DELETE FROM tracks WHERE id IN (400, 431, 433) OR creator IN ('Snow Patrol', 'Daddy Yankee, Snow', 'Snow Man') OR creator LIKE '%Snow Patrol%'"
+            ).executeUpdate();
+            result.append("Removed ").append(deleted).append(" non-AI tracks.\n");
+            log.info("Cleaned up {} non-AI tracks from tracks table", deleted);
+        } catch (Exception e) {
+            result.append("Failed to clean up non-AI tracks: ").append(e.getMessage()).append("\n");
+            log.warn("Failed to clean up non-AI tracks: {}", e.getMessage());
+        }
+
         return ResponseEntity.ok(result.toString());
     }
 
