@@ -42,6 +42,7 @@ public class ScheduledJobService {
 
     private final SpotifyService            spotifyService;
     private final WeeklyChartService        weeklyChartService;
+    private final AiDiscoveryService        aiDiscoveryService;
     private final PlatformSettingRepository settingRepository;
 
     // ── Scheduled entry point ──────────────────────────────────────────────────
@@ -52,10 +53,11 @@ public class ScheduledJobService {
      */
     @Scheduled(cron = "0 0 0,12 * * *", zone = "UTC")
     public void runDailyRefreshAndChart() {
-        log.info("=== Scheduled job START: track refresh + chart recalculation ===");
+        log.info("=== Scheduled job START: track refresh + chart recalculation + AI discovery ===");
         try {
             refreshTracksAndWait();
             recalculateChart();
+            kickOffAiDiscovery();
         } catch (Exception e) {
             log.error("Scheduled job encountered an error", e);
         }
@@ -111,5 +113,19 @@ public class ScheduledJobService {
         String ts = FORMATTER.format(Instant.now());
         settingRepository.save(new PlatformSetting(KEY_CHART, ts));
         log.info("Scheduled: chart_last_updated = {}", ts);
+    }
+
+    // ── Phase 3: AI discovery + auto-import ───────────────────────────────────
+
+    /**
+     * Fires off the AI discovery scan in the background.
+     * Results are auto-imported to the library; no admin action required.
+     * Runs asynchronously so it doesn't block the scheduled job thread.
+     */
+    private void kickOffAiDiscovery() {
+        log.info("Scheduled: kicking off AI discovery auto-import...");
+        aiDiscoveryService.startDiscoveryFetchWithAutoImport();
+        // Intentionally non-blocking — the import runs in its own thread.
+        // Progress can be monitored via GET /api/ai-discovery/status.
     }
 }

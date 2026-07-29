@@ -1,12 +1,16 @@
 package com.mikstermedia.service;
 
 import com.mikstermedia.dto.SpotifySearchResult;
+import com.mikstermedia.dto.TrackDTO;
+import com.mikstermedia.model.Artist;
+import com.mikstermedia.repository.ArtistRepository;
 import com.mikstermedia.repository.TrackRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -122,7 +126,9 @@ public class AiDiscoveryService {
     @Value("${spotify.client-secret:}") private String spotifyClientSecret;
     @Value("${youtube.api-key:}")        private String youtubeApiKey;
 
-    private final TrackRepository trackRepository;
+    private final TrackRepository   trackRepository;
+    private final TrackService       trackService;
+    private final ArtistRepository   artistRepository;
     private final ObjectMapper    objectMapper = new ObjectMapper();
     private final RestTemplate    restTemplate = new RestTemplate();
 
@@ -263,6 +269,149 @@ public class AiDiscoveryService {
         t.start();
     }
 
+    /**
+     * Same as {@link #startDiscoveryFetch()} but automatically imports every
+     * discovered track that passes the AI filter and is not already in the library.
+     * Called by the scheduled job so the library grows without manual admin effort.
+     *
+     * <p>Spotify tracks must have popularity >= 10 to avoid test/throwaway uploads.
+     * YouTube tracks are imported regardless of popularity (score not available at scan time).
+     */
+    public void startDiscoveryFetchWithAutoImport() {
+        if (fetchRunning) {
+            log.info("Discovery fetch already running — skipping auto-import trigger");
+            return;
+        }
+        fetchRunning  = true;
+        fetchProgress = 0;
+        fetchError    = null;
+        lastResults.clear();
+
+        Thread t = new Thread(() -> {
+            try {
+                List<SpotifySearchResult> combined = new ArrayList<>();
+                Set<String> importedUrls = trackRepository.findAll().stream()
+                    .map(track -> track.getMediaUrl())
+                    .collect(Collectors.toSet());
+
+                String token = getSpotifyToken();
+                if (token != null) {
+                    int total = SPOTIFY_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        try {
+                            List<SpotifySearchResult> hits = searchSpotify(token, SPOTIFY_QUERIES.get(i), importedUrls);
+                            hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .forEach(combined::add);
+                        } catch (Exception e) {
+                            log.warn("Auto-import Spotify query failed: {}", e.getMessage());
+                        }
+                        fetchProgress = (int) ((i + 1) * 40.0 / total);
+                        Thread.sleep(200);
+                    }
+                }
+
+                if (youtubeApiKey != null && !youtubeApiKey.isBlank()) {
+                    int total = YOUTUBE_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        try {
+                            List<SpotifySearchResult> hits = searchYouTube(YOUTUBE_QUERIES.get(i), importedUrls);
+                            hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .forEach(combined::add);
+                        } catch (Exception e) {
+                            log.warn("Auto-import YouTube query failed: {}", e.getMessage());
+                        }
+                        fetchProgress = 40 + (int) ((i + 1) * 40.0 / total);
+                        Thread.sleep(200);
+                    }
+                }
+
+                // Deduplicate
+                Map<String, SpotifySearchResult> deduped = new LinkedHashMap<>();
+                for (SpotifySearchResult r : combined) {
+                    String key = r.getSpotifyUrl() != null && !r.getSpotifyUrl().isBlank()
+                        ? r.getSpotifyUrl() : (r.getTitle() + "|" + r.getArtist());
+                    deduped.putIfAbsent(key, r);
+                }
+
+                // Auto-import new tracks
+                int imported = 0;
+                int skipped  = 0;
+                List<SpotifySearchResult> candidates = new ArrayList<>(deduped.values());
+                for (int i = 0; i < candidates.size(); i++) {
+                    SpotifySearchResult r = candidates.get(i);
+                    if (r.isAlreadyImported()) { skipped++; continue; }
+                    // Spotify: require popularity >= 10 to avoid junk uploads
+                    if ("Spotify".equals(r.getPlatformSource()) && r.getPopularity() < 10) { skipped++; continue; }
+                    try {
+                        autoImport(r);
+                        r.setAlreadyImported(true);
+                        imported++;
+                    } catch (DataIntegrityViolationException e) {
+                        skipped++; // already in DB
+                    } catch (Exception e) {
+                        log.warn("Auto-import failed for '{}': {}", r.getTitle(), e.getMessage());
+                        skipped++;
+                    }
+                    fetchProgress = 80 + (int) ((i + 1) * 20.0 / candidates.size());
+                }
+
+                lastResults.clear();
+                lastResults.addAll(candidates);
+                fetchProgress = 100;
+                log.info("AI Discovery auto-import complete: {} imported, {} skipped/already-present",
+                         imported, skipped);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fetchError = "Auto-import interrupted";
+            } catch (Exception e) {
+                fetchError = e.getMessage();
+                log.error("AI Discovery auto-import error: {}", e.getMessage());
+            } finally {
+                fetchRunning = false;
+            }
+        });
+        t.setDaemon(true);
+        t.setName("ai-discovery-auto-import");
+        t.start();
+    }
+
+    /** Creates a Track and auto-creates the artist if they don't already exist. */
+    private void autoImport(SpotifySearchResult r) {
+        // Auto-create artist
+        if (r.getArtist() != null && !r.getArtist().isBlank()) {
+            for (String raw : r.getArtist().split(",")) {
+                String name = raw.trim();
+                if (name.isBlank()) continue;
+                boolean exists = artistRepository.findByNameContainingIgnoreCase(name)
+                    .stream().anyMatch(a -> a.getName().equalsIgnoreCase(name));
+                if (!exists) {
+                    Artist artist = new Artist();
+                    artist.setName(name);
+                    artist.setAiToolsUsed("AI Discovery");
+                    if (r.getAlbumImageUrl() != null && !r.getAlbumImageUrl().isBlank())
+                        artist.setImageUrl(r.getAlbumImageUrl());
+                    artistRepository.save(artist);
+                }
+            }
+        }
+        TrackDTO dto = new TrackDTO();
+        dto.setTitle(r.getTitle());
+        dto.setCreator(r.getArtist());
+        dto.setMediaUrl(r.getSpotifyUrl());
+        dto.setPlatformSource(r.getPlatformSource());
+        dto.setEmbedUrl(r.getEmbedUrl());
+        dto.setImageUrl(r.getAlbumImageUrl());
+        dto.setAiToolsUsed("");
+        dto.setGenre("");
+        dto.setFeaturedStatus(false);
+        dto.setSpotifyPopularity(r.getPopularity());
+        dto.setReleaseDate(r.getReleaseDate());
+        trackService.createTrack(dto);
+    }
+
     // ── Spotify ───────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
@@ -290,7 +439,7 @@ public class AiDiscoveryService {
     private List<SpotifySearchResult> searchSpotify(String token, String query,
                                                       Set<String> importedUrls) throws Exception {
         String url = SPOTIFY_SEARCH_URL + "?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)
-                     + "&type=track&limit=10&market=US";
+                     + "&type=track&limit=50&market=US";
         HttpHeaders h = new HttpHeaders();
         h.setBearerAuth(token);
         HttpEntity<Void> req = new HttpEntity<>(h);
@@ -341,7 +490,7 @@ public class AiDiscoveryService {
             + "?part=snippet&type=video&videoCategoryId=10" // Music category
             + "&order=date"
             + "&q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)
-            + "&maxResults=10"
+            + "&maxResults=50"
             + "&key=" + youtubeApiKey;
         HttpHeaders h = new HttpHeaders();
         h.setAccept(List.of(MediaType.APPLICATION_JSON));
