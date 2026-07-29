@@ -18,6 +18,7 @@ public class MigrationController {
     private final jakarta.persistence.EntityManager em;
 
     @PostMapping("/run")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<String> runMigrations() {
         log.info("Manual migration triggered via API...");
         StringBuilder result = new StringBuilder("Migration Results:\n");
