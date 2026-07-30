@@ -65,6 +65,21 @@ public class MigrationController {
             log.warn("Failed to clean up non-AI tracks: {}", e.getMessage());
         }
 
+        try {
+            try {
+                em.createNativeQuery("ALTER TABLE email_blast ADD COLUMN type VARCHAR(50) DEFAULT 'News Letter'").executeUpdate();
+                result.append("Added 'type' column to email_blast.\n");
+            } catch (Exception colEx) {
+                result.append("type column check: ").append(colEx.getMessage()).append("\n");
+            }
+            int updated = em.createNativeQuery("UPDATE email_blast SET type = 'News Letter' WHERE type IS NULL OR type = ''").executeUpdate();
+            result.append("Updated ").append(updated).append(" email_blast records to type='News Letter'.\n");
+            log.info("Migrated email_blast records: {} updated", updated);
+        } catch (Exception e) {
+            result.append("Failed to migrate email_blast: ").append(e.getMessage()).append("\n");
+            log.warn("Failed to migrate email_blast: {}", e.getMessage());
+        }
+
         return ResponseEntity.ok(result.toString());
     }
 

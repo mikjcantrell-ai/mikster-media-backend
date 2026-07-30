@@ -34,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
     private final NewReleaseRepository newReleaseRepository;
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Value("${app.admin.username}")
     private String adminUsername;
@@ -43,6 +44,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureEmailBlastTypeColumn();
         seedAdminUser();
         seedPlatformSettings();
         seedTracks();
@@ -51,6 +53,23 @@ public class DataInitializer implements CommandLineRunner {
         seedGenres();
         seedNewReleases();
         log.info("✅ Data initialization complete.");
+    }
+
+    private void ensureEmailBlastTypeColumn() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE email_blast ADD COLUMN type VARCHAR(50) DEFAULT 'News Letter'");
+            log.info("Added 'type' column to email_blast table.");
+        } catch (Exception e) {
+            log.debug("type column check in email_blast: {}", e.getMessage());
+        }
+        try {
+            int updated = jdbcTemplate.update("UPDATE email_blast SET type = 'News Letter' WHERE type IS NULL OR type = ''");
+            if (updated > 0) {
+                log.info("Updated {} existing email_blast entries to type = 'News Letter'.", updated);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update email_blast type: {}", e.getMessage());
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

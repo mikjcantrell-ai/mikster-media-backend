@@ -79,6 +79,7 @@ public class AdminEmailController {
         logEntry.setSubject(dto.getSubject());
         logEntry.setBody(dto.getBody());
         logEntry.setRecipientCount(targetEmails.size());
+        logEntry.setType(dto.getType() != null && !dto.getType().isBlank() ? dto.getType() : "News Letter");
         emailBlastRepository.save(logEntry);
 
         return ResponseEntity.ok(Map.of(

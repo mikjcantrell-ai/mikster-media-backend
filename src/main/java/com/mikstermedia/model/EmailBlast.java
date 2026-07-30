@@ -26,4 +26,7 @@ public class EmailBlast {
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime sentAt;
+
+    @Column(nullable = false, length = 50)
+    private String type = "News Letter";
 }

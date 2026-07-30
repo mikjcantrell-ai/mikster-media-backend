@@ -10,4 +10,5 @@ public class AdminEmailDTO {
     private String recipientMode; // ALL, NEWSLETTER, SPECIFIC, OTHER
     private List<Long> memberIds;
     private String customEmails;
+    private String type = "News Letter";
 }

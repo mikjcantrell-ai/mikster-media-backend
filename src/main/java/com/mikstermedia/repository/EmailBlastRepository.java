@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface EmailBlastRepository extends JpaRepository<EmailBlast, Long> {
     List<EmailBlast> findAllByOrderBySentAtDesc();
+    List<EmailBlast> findByTypeIgnoreCaseOrderBySentAtDesc(String type);
 }
