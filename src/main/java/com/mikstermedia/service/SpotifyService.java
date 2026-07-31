@@ -328,7 +328,7 @@ public class SpotifyService {
                 .retrieve()
                 .body(Map.class);
 
-            return parseSearchResponse(response, safeLimit, safeOffset);
+            return parseSearchResponse(response, safeLimit, safeOffset, query);
         } catch (Exception e) {
             log.error("Spotify search failed: {}", e.getMessage());
             return new SpotifySearchPage(List.of(), 0, safeOffset, safeLimit);
@@ -554,8 +554,7 @@ public class SpotifyService {
     }
 
     /** Parses the Spotify search JSON response into a paginated result page. */
-    @SuppressWarnings("unchecked")
-    private SpotifySearchPage parseSearchResponse(Map<?, ?> response, int limit, int offset) {
+    private SpotifySearchPage parseSearchResponse(Map<?, ?> response, int limit, int offset, String query) {
         List<SpotifySearchResult> results = new ArrayList<>();
         if (response == null) return new SpotifySearchPage(results, 0, offset, limit);
 
@@ -575,12 +574,51 @@ public class SpotifyService {
             List<?> items = (List<?>) tracksObj.get("items");
             if (items == null) return new SpotifySearchPage(results, total, offset, limit);
 
-            results.addAll(parseItems(items, existingUrls));
+            List<SpotifySearchResult> parsed = parseItems(items, existingUrls);
+            for (SpotifySearchResult r : parsed) {
+                if (matchesQueryOrAi(r, query)) {
+                    results.add(r);
+                }
+            }
         } catch (Exception e) {
             log.error("Error parsing Spotify response: {}", e.getMessage());
         }
 
         return new SpotifySearchPage(results, total, offset, limit);
+    }
+
+    private boolean matchesQueryOrAi(SpotifySearchResult r, String query) {
+        if (query == null || query.isBlank() || r == null) return true;
+        String qLower = query.toLowerCase().trim();
+        String artistLower = r.getArtist() != null ? r.getArtist().toLowerCase() : "";
+        String titleLower = r.getTitle() != null ? r.getTitle().toLowerCase() : "";
+        String albumLower = r.getAlbum() != null ? r.getAlbum().toLowerCase() : "";
+
+        // 1. If query is of form "artist:X" (e.g. artist:suno, artist:udio), enforce that artist actually contains X
+        if (qLower.contains("artist:")) {
+            String requiredArtist = qLower.substring(qLower.indexOf("artist:") + 7)
+                .replace("\"", "").trim();
+            if (!requiredArtist.isEmpty() && !artistLower.contains(requiredArtist)) {
+                log.debug("Filtering out false positive Spotify result '{}' by '{}' (did not match required artist '{}')",
+                    r.getTitle(), r.getArtist(), requiredArtist);
+                return false;
+            }
+        }
+
+        // 2. If query asks for specific AI keywords, don't let Spotify fuzzy-match "Snow Patrol" or unrelated songs
+        List<String> aiTerms = List.of("suno", "udio", "stable audio", "ai generated", "ai music",
+                                       "mozart ai", "sonauto", "riffusion", "lyria", "musicgen");
+        for (String term : aiTerms) {
+            if (qLower.contains(term)) {
+                if (!artistLower.contains(term) && !titleLower.contains(term) && !albumLower.contains(term)) {
+                    log.debug("Filtering out false positive Spotify result '{}' by '{}' (did not match AI term '{}')",
+                        r.getTitle(), r.getArtist(), term);
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
 

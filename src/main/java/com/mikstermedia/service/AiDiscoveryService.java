@@ -14,6 +14,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import com.mikstermedia.dto.SpotifySearchPage;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -92,6 +94,32 @@ public class AiDiscoveryService {
         "\"meta musicgen\" music 2026"
     );
 
+    private static final List<String> SOUNDCLOUD_QUERIES = List.of(
+        "\"suno ai\"",
+        "\"udio ai\"",
+        "\"stable audio\"",
+        "\"ai generated music\"",
+        "\"mozart ai\"",
+        "\"sonauto\"",
+        "\"riffusion\""
+    );
+
+    private static final List<String> ITUNES_QUERIES = List.of(
+        "suno ai",
+        "udio ai",
+        "stable audio",
+        "ai generated music",
+        "mozart ai",
+        "sonauto",
+        "riffusion"
+    );
+
+    private static final List<String> REDDIT_SUBREDDITS = List.of(
+        "SunoAI",
+        "UdioMusic",
+        "AIMusicCreate"
+    );
+
     // ── AI indicator terms for post-filter ────────────────────────────────────
     // A result must match at least one ARTIST term AND/OR one TITLE term.
     private static final List<String> AI_ARTIST_TERMS = List.of(
@@ -129,6 +157,7 @@ public class AiDiscoveryService {
     private final TrackRepository   trackRepository;
     private final TrackService       trackService;
     private final ArtistRepository   artistRepository;
+    private final SoundCloudService  soundCloudService;
     private final ObjectMapper    objectMapper = new ObjectMapper();
     private final RestTemplate    restTemplate = new RestTemplate();
 
@@ -200,7 +229,7 @@ public class AiDiscoveryService {
                         } catch (Exception e) {
                             log.warn("Spotify discovery query '{}' failed: {}", query, e.getMessage());
                         }
-                        fetchProgress = (int) ((i + 1) * 50.0 / total);
+                        fetchProgress = (int) ((i + 1) * 30.0 / total);
                         Thread.sleep(200); // respect rate limits
                     }
                 } else {
@@ -224,11 +253,76 @@ public class AiDiscoveryService {
                         } catch (Exception e) {
                             log.warn("YouTube discovery query '{}' failed: {}", query, e.getMessage());
                         }
-                        fetchProgress = 50 + (int) ((i + 1) * 50.0 / total);
+                        fetchProgress = 30 + (int) ((i + 1) * 25.0 / total);
                         Thread.sleep(200);
                     }
                 } else {
                     log.warn("AI Discovery: YouTube API key unavailable — skipping YouTube phase");
+                }
+
+                // ── Phase 3: SoundCloud ──────────────────────────────────────
+                try {
+                    int total = SOUNDCLOUD_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        String query = SOUNDCLOUD_QUERIES.get(i);
+                        try {
+                            List<SpotifySearchResult> hits = searchSoundCloud(query, importedUrls);
+                            List<SpotifySearchResult> aiOnly = hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .collect(Collectors.toList());
+                            combined.addAll(aiOnly);
+                            log.info("SoundCloud query '{}' → {} raw / {} passed AI filter",
+                                query, hits.size(), aiOnly.size());
+                        } catch (Exception e) {
+                            log.warn("SoundCloud discovery query '{}' failed: {}", query, e.getMessage());
+                        }
+                        fetchProgress = 55 + (int) ((i + 1) * 15.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("SoundCloud discovery phase failed: {}", e.getMessage());
+                }
+
+                // ── Phase 4: Apple Music ─────────────────────────────────────
+                try {
+                    int total = ITUNES_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        String query = ITUNES_QUERIES.get(i);
+                        try {
+                            List<SpotifySearchResult> hits = searchItunes(query, importedUrls);
+                            List<SpotifySearchResult> aiOnly = hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .collect(Collectors.toList());
+                            combined.addAll(aiOnly);
+                            log.info("Apple Music query '{}' → {} raw / {} passed AI filter",
+                                query, hits.size(), aiOnly.size());
+                        } catch (Exception e) {
+                            log.warn("Apple Music query '{}' failed: {}", query, e.getMessage());
+                        }
+                        fetchProgress = 70 + (int) ((i + 1) * 15.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("Apple Music discovery phase failed: {}", e.getMessage());
+                }
+
+                // ── Phase 5: Reddit (r/SunoAI, r/UdioMusic) ──────────────────
+                try {
+                    int total = REDDIT_SUBREDDITS.size();
+                    for (int i = 0; i < total; i++) {
+                        String sub = REDDIT_SUBREDDITS.get(i);
+                        try {
+                            List<SpotifySearchResult> hits = searchReddit(sub, importedUrls);
+                            combined.addAll(hits);
+                            log.info("Reddit r/{} → {} AI tracks found", sub, hits.size());
+                        } catch (Exception e) {
+                            log.warn("Reddit discovery for r/{} failed: {}", sub, e.getMessage());
+                        }
+                        fetchProgress = 85 + (int) ((i + 1) * 10.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("Reddit discovery phase failed: {}", e.getMessage());
                 }
 
                 // ── Deduplicate & sort ────────────────────────────────────────
@@ -322,9 +416,62 @@ public class AiDiscoveryService {
                         } catch (Exception e) {
                             log.warn("Auto-import YouTube query failed: {}", e.getMessage());
                         }
-                        fetchProgress = 40 + (int) ((i + 1) * 40.0 / total);
+                        fetchProgress = 30 + (int) ((i + 1) * 25.0 / total);
                         Thread.sleep(200);
                     }
+                }
+
+                try {
+                    int total = SOUNDCLOUD_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        try {
+                            List<SpotifySearchResult> hits = searchSoundCloud(SOUNDCLOUD_QUERIES.get(i), importedUrls);
+                            hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .forEach(combined::add);
+                        } catch (Exception e) {
+                            log.warn("Auto-import SoundCloud query failed: {}", e.getMessage());
+                        }
+                        fetchProgress = 55 + (int) ((i + 1) * 15.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("Auto-import SoundCloud phase failed: {}", e.getMessage());
+                }
+
+                try {
+                    int total = ITUNES_QUERIES.size();
+                    for (int i = 0; i < total; i++) {
+                        try {
+                            List<SpotifySearchResult> hits = searchItunes(ITUNES_QUERIES.get(i), importedUrls);
+                            hits.stream()
+                                .filter(r -> isLikelyAiGenerated(r.getArtist(), r.getTitle()))
+                                .forEach(combined::add);
+                        } catch (Exception e) {
+                            log.warn("Auto-import Apple Music query failed: {}", e.getMessage());
+                        }
+                        fetchProgress = 70 + (int) ((i + 1) * 15.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("Auto-import Apple Music phase failed: {}", e.getMessage());
+                }
+
+                try {
+                    int total = REDDIT_SUBREDDITS.size();
+                    for (int i = 0; i < total; i++) {
+                        String sub = REDDIT_SUBREDDITS.get(i);
+                        try {
+                            List<SpotifySearchResult> hits = searchReddit(sub, importedUrls);
+                            combined.addAll(hits);
+                        } catch (Exception e) {
+                            log.warn("Auto-import Reddit r/{} failed: {}", sub, e.getMessage());
+                        }
+                        fetchProgress = 85 + (int) ((i + 1) * 10.0 / total);
+                        Thread.sleep(200);
+                    }
+                } catch (Exception e) {
+                    log.warn("Auto-import Reddit phase failed: {}", e.getMessage());
                 }
 
                 // Deduplicate
@@ -526,6 +673,142 @@ public class AiDiscoveryService {
             }
         }
         return results;
+    }
+
+    // ── SoundCloud ────────────────────────────────────────────────────────────
+
+    private List<SpotifySearchResult> searchSoundCloud(String query, Set<String> importedUrls) {
+        if (soundCloudService == null || !soundCloudService.isConfigured()) {
+            return List.of();
+        }
+        try {
+            SpotifySearchPage page = soundCloudService.search(query, 25);
+            List<SpotifySearchResult> results = page.getItems();
+            for (SpotifySearchResult r : results) {
+                r.setPlatformSource("SoundCloud");
+                if (importedUrls.contains(r.getSpotifyUrl()) || importedUrls.contains(r.getEmbedUrl())) {
+                    r.setAlreadyImported(true);
+                }
+            }
+            return results;
+        } catch (Exception e) {
+            log.trace("SoundCloud search error: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    // ── Apple Music (iTunes Search API) ───────────────────────────────────────
+
+    private List<SpotifySearchResult> searchItunes(String query, Set<String> importedUrls) {
+        List<SpotifySearchResult> results = new ArrayList<>();
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl("https://itunes.apple.com/search")
+                .queryParam("term", query)
+                .queryParam("entity", "song")
+                .queryParam("limit", 25)
+                .toUriString();
+            String json = restTemplate.getForObject(url, String.class);
+            if (json == null) return results;
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode items = root.path("results");
+            if (items.isArray()) {
+                for (JsonNode item : items) {
+                    String title = item.path("trackName").asText("");
+                    String artist = item.path("artistName").asText("");
+                    if (title.isBlank() || artist.isBlank()) continue;
+                    String artwork = item.path("artworkUrl100").asText("").replace("100x100bb", "600x600bb");
+                    String previewUrl = item.path("previewUrl").asText("");
+                    String trackViewUrl = item.path("trackViewUrl").asText("");
+                    String releaseDate = item.path("releaseDate").asText("");
+                    if (releaseDate.length() > 10) releaseDate = releaseDate.substring(0, 10);
+
+                    SpotifySearchResult r = new SpotifySearchResult(
+                        "apple-" + item.path("trackId").asText(),
+                        title, artist, item.path("collectionName").asText("Single"),
+                        artwork, trackViewUrl, previewUrl,
+                        item.path("trackTimeMillis").asInt(180000), 70
+                    );
+                    r.setReleaseDate(releaseDate);
+                    r.setPlatformSource("Apple Music");
+                    if (importedUrls.contains(trackViewUrl) || importedUrls.contains(previewUrl)) {
+                        r.setAlreadyImported(true);
+                    }
+                    results.add(r);
+                }
+            }
+        } catch (Exception e) {
+            log.trace("iTunes search error: {}", e.getMessage());
+        }
+        return results;
+    }
+
+    // ── Reddit (r/SunoAI, r/UdioMusic, r/AIMusicCreate) ───────────────────────
+
+    private List<SpotifySearchResult> searchReddit(String subreddit, Set<String> importedUrls) {
+        List<SpotifySearchResult> results = new ArrayList<>();
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "MiksterMediaBot/1.0");
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            String url = "https://www.reddit.com/r/" + subreddit + "/new.json?limit=25";
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            if (response.getBody() == null) return results;
+            JsonNode root = objectMapper.readTree(response.getBody());
+            JsonNode children = root.path("data").path("children");
+            if (children.isArray()) {
+                for (JsonNode child : children) {
+                    JsonNode data = child.path("data");
+                    String postTitle = data.path("title").asText("");
+                    String author = data.path("author").asText("");
+                    String urlStr = data.path("url").asText("");
+                    String selftext = data.path("selftext").asText("");
+                    long createdUtc = data.path("created_utc").asLong(0);
+                    int score = data.path("score").asInt(1);
+
+                    String mediaUrl = extractMediaUrl(urlStr);
+                    if (mediaUrl == null) {
+                        mediaUrl = extractMediaUrl(selftext);
+                    }
+                    if (mediaUrl != null && !postTitle.isBlank()) {
+                        SpotifySearchResult r = new SpotifySearchResult(
+                            "reddit-" + data.path("id").asText(),
+                            postTitle.trim(),
+                            author + " (r/" + subreddit + ")",
+                            "r/" + subreddit + " Community",
+                            "", mediaUrl, mediaUrl,
+                            180000, Math.min(100, Math.max(20, score * 5))
+                        );
+                        if (createdUtc > 0) {
+                            r.setReleaseDate(java.time.Instant.ofEpochSecond(createdUtc)
+                                .atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate().toString());
+                        } else {
+                            r.setReleaseDate(java.time.LocalDate.now().toString());
+                        }
+                        r.setPlatformSource("Reddit");
+                        if (importedUrls.contains(mediaUrl)) {
+                            r.setAlreadyImported(true);
+                        }
+                        results.add(r);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.trace("Reddit search error for r/{}: {}", subreddit, e.getMessage());
+        }
+        return results;
+    }
+
+    private String extractMediaUrl(String text) {
+        if (text == null || text.isBlank()) return null;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+            "https?://(?:suno\\.com/song/|www\\.udio\\.com/songs/|youtu\\.be/|www\\.youtube\\.com/watch|soundcloud\\.com/)[^\\s)\\]\"'>]+"
+        );
+        java.util.regex.Matcher m = pattern.matcher(text);
+        if (m.find()) {
+            return m.group(0);
+        }
+        return null;
     }
 
     // ── AI generation filter ───────────────────────────────────────────────────
