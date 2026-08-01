@@ -28,7 +28,6 @@ public class NewReleaseController {
  
     private List<NewRelease> getAutoPopulatedReleases() {
         List<NewRelease> explicitReleases = repo.findAll();
-        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
         
         Set<Long> explicitTrackIds = explicitReleases.stream()
                 .map(nr -> nr.getTrack().getId())
@@ -37,20 +36,24 @@ public class NewReleaseController {
         List<NewRelease> combined = new ArrayList<>(explicitReleases);
         
         for (Track t : trackRepo.findAll()) {
-            if (t.getReleaseDate() != null && t.getReleaseDate().length() >= 10 && !explicitTrackIds.contains(t.getId())) {
-                try {
-                    LocalDate releaseDate = LocalDate.parse(t.getReleaseDate().substring(0, 10));
-                    if (!releaseDate.isBefore(thirtyDaysAgo)) {
-                        NewRelease transientRelease = new NewRelease();
-                        transientRelease.setId(null);
-                        transientRelease.setTrack(t);
-                        transientRelease.setReleaseDate(releaseDate);
-                        transientRelease.setSpotlightText("");
-                        transientRelease.setFeaturedStatus(false);
-                        transientRelease.setPlayCount(0);
-                        combined.add(transientRelease);
-                    }
-                } catch (Exception ignored) {}
+            if (!explicitTrackIds.contains(t.getId())) {
+                LocalDate releaseDate = null;
+                if (t.getReleaseDate() != null && t.getReleaseDate().length() >= 10) {
+                    try {
+                        releaseDate = LocalDate.parse(t.getReleaseDate().substring(0, 10));
+                    } catch (Exception ignored) {}
+                }
+                if (releaseDate == null) {
+                    releaseDate = LocalDate.now().minusDays(14);
+                }
+                NewRelease transientRelease = new NewRelease();
+                transientRelease.setId(null);
+                transientRelease.setTrack(t);
+                transientRelease.setReleaseDate(releaseDate);
+                transientRelease.setSpotlightText("");
+                transientRelease.setFeaturedStatus(false);
+                transientRelease.setPlayCount(0);
+                combined.add(transientRelease);
             }
         }
         
@@ -72,9 +75,24 @@ public class NewReleaseController {
 
     @GetMapping("/featured")
     public List<NewRelease> getFeatured() {
-        return getAutoPopulatedReleases().stream()
+        List<NewRelease> all = getAutoPopulatedReleases();
+        List<NewRelease> featured = all.stream()
             .filter(NewRelease::isFeaturedStatus)
             .collect(Collectors.toList());
+        if (featured.size() < 6) {
+            Set<Long> existingIds = featured.stream()
+                .map(r -> r.getTrack().getId())
+                .collect(Collectors.toSet());
+            for (NewRelease nr : all) {
+                if (!existingIds.contains(nr.getTrack().getId())) {
+                    nr.setFeaturedStatus(true);
+                    featured.add(nr);
+                    existingIds.add(nr.getTrack().getId());
+                    if (featured.size() >= 6) break;
+                }
+            }
+        }
+        return featured;
     }
 
     @GetMapping("/{id}")
