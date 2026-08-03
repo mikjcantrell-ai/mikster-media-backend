@@ -99,11 +99,13 @@ public class SpotifyService {
     // ── User OAuth State ──────────────────────────────────────────────────────
     private final SunoScraperService sunoScraperService;
     private final UdioScraperService udioScraperService;
+    private final LanguageDetectionService languageDetectionService;
 
     public SpotifyService(TrackRepository trackRepository, ArtistRepository artistRepository, 
                           LastFmService lastFmService, YouTubeService youTubeService, 
                           WeeklyChartService weeklyChartService, SunoScraperService sunoScraperService, 
                           UdioScraperService udioScraperService,
+                          LanguageDetectionService languageDetectionService,
                           PlatformSettingRepository settingRepo) {
         this.trackRepository  = trackRepository;
         this.artistRepository = artistRepository;
@@ -112,6 +114,7 @@ public class SpotifyService {
         this.weeklyChartService = weeklyChartService;
         this.sunoScraperService = sunoScraperService;
         this.udioScraperService = udioScraperService;
+        this.languageDetectionService = languageDetectionService;
         this.settingRepo      = settingRepo;
         this.restClient = RestClient.create();
     }
@@ -495,9 +498,10 @@ public class SpotifyService {
 
         log.info("Trending: {} unique tracks before sort, returning top {}", seen.size(), topN);
 
-        // Step 3: sort by popularity desc, return top N
+        // Step 3: sort by popularity desc, filter English only, return top N
         return seen.values().stream()
             .filter(r -> !r.getSpotifyId().isBlank())
+            .filter(r -> languageDetectionService.isLikelyEnglish(r.getTitle()))
             .sorted(java.util.Comparator.comparingInt(SpotifySearchResult::getPopularity).reversed())
             .limit(Math.max(1, topN))
             .toList();

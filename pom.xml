@@ -90,6 +90,13 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- ─── Language Detector (for AI Discovery filtering) ──────────── -->
+        <dependency>
+            <groupId>com.optimaize.languagedetector</groupId>
+            <artifactId>language-detector</artifactId>
+            <version>0.6</version>
+        </dependency>
+
     </dependencies>
 
     <build>

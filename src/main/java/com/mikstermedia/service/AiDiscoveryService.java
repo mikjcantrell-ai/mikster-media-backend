@@ -158,6 +158,7 @@ public class AiDiscoveryService {
     private final TrackService       trackService;
     private final ArtistRepository   artistRepository;
     private final SoundCloudService  soundCloudService;
+    private final LanguageDetectionService languageDetectionService;
     private final ObjectMapper    objectMapper = new ObjectMapper();
     private final RestTemplate    restTemplate = new RestTemplate();
 
@@ -334,8 +335,9 @@ public class AiDiscoveryService {
                     deduped.putIfAbsent(key, r);
                 }
 
-                // Sort: not-yet-imported first, then by release date desc, then popularity desc
+                // Sort: filter English only, not-yet-imported first, then by release date desc, then popularity desc
                 List<SpotifySearchResult> sorted = deduped.values().stream()
+                    .filter(r -> languageDetectionService.isLikelyEnglish(r.getTitle()))
                     .sorted(Comparator
                         .comparing(SpotifySearchResult::isAlreadyImported)
                         .thenComparing(Comparator.<SpotifySearchResult, String>comparing(
