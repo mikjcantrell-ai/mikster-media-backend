@@ -3,6 +3,7 @@ package com.mikstermedia.config;
 import com.mikstermedia.model.*;
 import com.mikstermedia.repository.*;
 import com.mikstermedia.service.WeeklyChartService;
+import com.mikstermedia.service.AiGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,8 @@ public class DataInitializer implements CommandLineRunner {
     private final WeeklyChartRepository weeklyChartRepository;
     private final PlatformSettingRepository settingRepository;
     private final WeeklyChartService weeklyChartService;
+    private final AiGeneratorService aiGeneratorService;
+    private final com.mikstermedia.service.AiVideoGeneratorService aiVideoGeneratorService;
     private final ArtistRepository artistRepository;
     private final GenreRepository genreRepository;
     private final NewReleaseRepository newReleaseRepository;
@@ -52,7 +55,81 @@ public class DataInitializer implements CommandLineRunner {
         seedArtists();
         seedGenres();
         seedNewReleases();
+        ensureAiGeneratorsTable();
+        aiGeneratorService.seedDefaultGeneratorsIfEmpty();
+        ensureAiVideoGeneratorsTable();
+        aiVideoGeneratorService.seedDefaultGeneratorsIfEmpty();
         log.info("✅ Data initialization complete.");
+    }
+
+    private void ensureAiGeneratorsTable() {
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS ai_generators (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    slug VARCHAR(255) NOT NULL UNIQUE,
+                    name VARCHAR(255) NOT NULL,
+                    logo VARCHAR(255) NOT NULL,
+                    tagline TEXT,
+                    category VARCHAR(255) NOT NULL,
+                    website_url VARCHAR(255) NOT NULL,
+                    rating DOUBLE,
+                    verdict TEXT,
+                    free_tier TEXT,
+                    pro_tier TEXT,
+                    premier_tier TEXT,
+                    max_track_length VARCHAR(255),
+                    has_stems BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_inpainting BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_custom_lyrics BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_midi_export BOOLEAN NOT NULL DEFAULT FALSE,
+                    commercial_rights_on_paid BOOLEAN NOT NULL DEFAULT FALSE,
+                    audio_quality VARCHAR(255),
+                    best_for_tags TEXT,
+                    display_order INT,
+                    url_reachable BOOLEAN NOT NULL DEFAULT TRUE,
+                    last_verified_at DATETIME(6)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            """);
+            log.info("Checked/created ai_generators table.");
+        } catch (Exception e) {
+            log.warn("Failed to check/create ai_generators table: {}", e.getMessage());
+        }
+    }
+
+    private void ensureAiVideoGeneratorsTable() {
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS ai_video_generators (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    slug VARCHAR(255) NOT NULL UNIQUE,
+                    name VARCHAR(255) NOT NULL,
+                    logo VARCHAR(255) NOT NULL,
+                    tagline TEXT,
+                    category VARCHAR(255) NOT NULL,
+                    website_url VARCHAR(255) NOT NULL,
+                    rating DOUBLE,
+                    verdict TEXT,
+                    free_tier TEXT,
+                    pro_tier TEXT,
+                    premier_tier TEXT,
+                    max_resolution VARCHAR(255),
+                    max_video_length VARCHAR(255),
+                    has_beat_sync BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_audio_reactive BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_singing_avatar BOOLEAN NOT NULL DEFAULT FALSE,
+                    has_stem_sync BOOLEAN NOT NULL DEFAULT FALSE,
+                    commercial_rights_on_paid BOOLEAN NOT NULL DEFAULT FALSE,
+                    best_for_tags TEXT,
+                    display_order INT,
+                    url_reachable BOOLEAN NOT NULL DEFAULT TRUE,
+                    last_verified_at DATETIME(6)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            """);
+            log.info("Checked/created ai_video_generators table.");
+        } catch (Exception e) {
+            log.warn("Failed to check/create ai_video_generators table: {}", e.getMessage());
+        }
     }
 
     private void ensureEmailBlastTypeColumn() {
