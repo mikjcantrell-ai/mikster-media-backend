@@ -34,12 +34,31 @@ public class TrackService {
     private final WeeklyChartService     weeklyChartService;
     private final ArtistRepository       artistRepository;
     private final EmailService           emailService;
-
-
-
-
+    private final LanguageDetectionService languageDetectionService;
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DB Cleanup operations
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public int cleanNonEnglishTracks() {
+        log.info("Starting cleanup of non-English tracks in the database...");
+        List<Track> allTracks = trackRepository.findAll();
+        int deletedCount = 0;
+        for (Track track : allTracks) {
+            if (!languageDetectionService.isLikelyEnglish(track.getTitle())) {
+                log.info("Deleting non-English track: {} (ID: {})", track.getTitle(), track.getId());
+                // Delete from child tables to prevent foreign key constraint violations
+                newReleaseRepository.deleteByTrackId(track.getId());
+                weeklyChartRepository.deleteByTrackId(track.getId());
+                // Delete track
+                trackRepository.delete(track);
+                deletedCount++;
+            }
+        }
+        log.info("Cleanup complete. Deleted {} non-English tracks.", deletedCount);
+        return deletedCount;
+    }    // ─────────────────────────────────────────────────────────────────────────
     // READ operations
     // ─────────────────────────────────────────────────────────────────────────
 

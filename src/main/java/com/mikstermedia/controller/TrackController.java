@@ -43,6 +43,13 @@ public class TrackController {
         return ResponseEntity.ok(trackService.getAllTracks());
     }
 
+    /** GET /api/tracks/clean-non-english — admin endpoint to delete existing non-English tracks */
+    @GetMapping("/clean-non-english")
+    public ResponseEntity<String> cleanNonEnglish() {
+        int deleted = trackService.cleanNonEnglishTracks();
+        return ResponseEntity.ok("Successfully cleaned " + deleted + " non-English tracks from the database.");
+    }
+
     /** GET /api/tracks/{id} — returns a single track by primary key */
     @GetMapping("/{id}")
     public ResponseEntity<Track> getTrackById(@PathVariable Long id) {
