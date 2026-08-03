@@ -61,6 +61,13 @@ public class LanguageDetectionService {
         if (languageDetector == null || text == null || text.trim().isEmpty()) {
             return true; // Pass through if service failed to init or string is empty
         }
+
+        // Fast-path rejection for common non-Latin scripts (Arabic, Cyrillic, Chinese, Japanese, Korean, Thai, Hindi, etc.)
+        // This catches short titles like "20 عاما" which the n-gram detector might find too short to confidently classify.
+        if (text.matches(".*[\\p{IsArabic}\\p{IsCyrillic}\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsDevanagari}].*")) {
+            log.debug("Filtered out non-English track via regex. Text: '{}'", text);
+            return false;
+        }
         
         TextObject textObject = textObjectFactory.forText(text);
         Optional<LdLocale> lang = languageDetector.detect(textObject);
