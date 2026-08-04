@@ -476,9 +476,12 @@ public class AiDiscoveryService {
                     log.warn("Auto-import Reddit phase failed: {}", e.getMessage());
                 }
 
-                // Deduplicate
+                // Deduplicate and apply Language Filter
                 Map<String, SpotifySearchResult> deduped = new LinkedHashMap<>();
                 for (SpotifySearchResult r : combined) {
+                    if (!languageDetectionService.isLikelyEnglish(r.getTitle())) {
+                        continue;
+                    }
                     String key = r.getSpotifyUrl() != null && !r.getSpotifyUrl().isBlank()
                         ? r.getSpotifyUrl() : (r.getTitle() + "|" + r.getArtist());
                     deduped.putIfAbsent(key, r);
