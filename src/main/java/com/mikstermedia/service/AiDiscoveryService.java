@@ -663,8 +663,12 @@ public class AiDiscoveryService {
 
     private List<SpotifySearchResult> searchSpotify(String token, String query,
                                                       Set<String> importedUrls) throws Exception {
-        String url = SPOTIFY_SEARCH_URL + "?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)
-                     + "&type=track&limit=50&market=US";
+        String url = org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(SPOTIFY_SEARCH_URL)
+            .queryParam("q", query)
+            .queryParam("type", "track")
+            .queryParam("limit", 50)
+            .queryParam("market", "US")
+            .build().toUriString();
         HttpHeaders h = new HttpHeaders();
         h.setBearerAuth(token);
         HttpEntity<Void> req = new HttpEntity<>(h);
@@ -711,12 +715,15 @@ public class AiDiscoveryService {
     // ── YouTube ───────────────────────────────────────────────────────────────
 
     private List<SpotifySearchResult> searchYouTube(String query, Set<String> importedUrls) throws Exception {
-        String url = YT_SEARCH_URL
-            + "?part=snippet&type=video&videoCategoryId=10" // Music category
-            + "&order=date"
-            + "&q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)
-            + "&maxResults=50"
-            + "&key=" + youtubeApiKey;
+        String url = org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(YT_SEARCH_URL)
+            .queryParam("part", "snippet")
+            .queryParam("type", "video")
+            .queryParam("videoCategoryId", "10")
+            .queryParam("order", "date")
+            .queryParam("q", query)
+            .queryParam("maxResults", 50)
+            .queryParam("key", youtubeApiKey)
+            .build().toUriString();
         HttpHeaders h = new HttpHeaders();
         h.setAccept(List.of(MediaType.APPLICATION_JSON));
         HttpEntity<Void> req = new HttpEntity<>(h);
