@@ -72,7 +72,9 @@ public class AiDiscoveryService {
         "artist:\"google musiclm\"",
         "artist:beatoven",
         "artist:loudly",
-        "artist:\"meta musicgen\""
+        "artist:\"meta musicgen\"",
+        // User's explicit band
+        "artist:\"confetti weather\""
     );
 
     // ── YouTube: channel/title queries that explicitly name the AI tool used ───
@@ -132,7 +134,9 @@ public class AiDiscoveryService {
         // Newer generators (2025-2026 wave)
         "mozart ai", "mozartai", "sonauto", "riffusion",
         "google musiclm", "google lyria", "lyria",
-        "meta musicgen", "udio 2.0", "chirp"
+        "meta musicgen", "udio 2.0", "chirp",
+        // Specific whitelisted artists
+        "confetti weather"
     );
 
     private static final List<String> AI_TITLE_TERMS = List.of(
@@ -178,6 +182,28 @@ public class AiDiscoveryService {
         Map<String, Object> s = new LinkedHashMap<>();
         s.put("running",          fetchRunning);
         s.put("progress",         fetchProgress);
+
+    private List<String> getKnownArtistQueries() {
+        List<Artist> artists = artistRepository.findAll();
+        List<String> queries = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (Artist a : artists) {
+            if (a.getName() == null || a.getName().isBlank()) continue;
+            if (sb.length() > 0) sb.append(" OR ");
+            sb.append("artist:\"").append(a.getName()).append("\"");
+            count++;
+            if (count == 5) {
+                queries.add(sb.toString());
+                sb = new StringBuilder();
+                count = 0;
+            }
+        }
+        if (sb.length() > 0) {
+            queries.add(sb.toString());
+        }
+        return queries;
+    }
         s.put("resultCount",      lastResults.size());
         if (fetchError != null) s.put("error", fetchError);
         return s;
@@ -235,6 +261,24 @@ public class AiDiscoveryService {
                     }
                 } else {
                     log.warn("AI Discovery: Spotify token unavailable — skipping Spotify phase");
+                }
+
+                // ── Phase 1.5: Known Artists on Spotify ──────────────────────
+                if (token != null) {
+                    List<String> knownQueries = getKnownArtistQueries();
+                    for (int i = 0; i < knownQueries.size(); i++) {
+                        String query = knownQueries.get(i);
+                        try {
+                            List<SpotifySearchResult> hits = searchSpotify(token, query, importedUrls);
+                            // Bypass strict AI filter for known artists
+                            combined.addAll(hits);
+                            log.info("Spotify known artist query '{}' → {} raw hits bypassed AI filter",
+                                query, hits.size());
+                        } catch (Exception e) {
+                            log.warn("Spotify known artist query '{}' failed: {}", query, e.getMessage());
+                        }
+                        Thread.sleep(200); // respect rate limits
+                    }
                 }
 
                 // ── Phase 2: YouTube ─────────────────────────────────────────
@@ -403,6 +447,19 @@ public class AiDiscoveryService {
                             log.warn("Auto-import Spotify query failed: {}", e.getMessage());
                         }
                         fetchProgress = (int) ((i + 1) * 40.0 / total);
+                        Thread.sleep(200);
+                    }
+
+                    // ── Phase 1.5: Known Artists on Spotify (Auto-Import) ────
+                    List<String> knownQueries = getKnownArtistQueries();
+                    for (int i = 0; i < knownQueries.size(); i++) {
+                        try {
+                            List<SpotifySearchResult> hits = searchSpotify(token, knownQueries.get(i), importedUrls);
+                            // Bypass strict AI filter for known artists
+                            combined.addAll(hits);
+                        } catch (Exception e) {
+                            log.warn("Auto-import Spotify known artist query failed: {}", e.getMessage());
+                        }
                         Thread.sleep(200);
                     }
                 }
