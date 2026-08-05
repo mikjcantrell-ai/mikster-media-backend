@@ -209,6 +209,13 @@ public class AiDiscoveryService {
         return queries;
     }
 
+    private Set<String> getImportedTitleArtists() {
+        return trackRepository.findAll().stream()
+            .filter(t -> t.getTitle() != null && t.getCreator() != null)
+            .map(t -> (t.getTitle().trim() + "|" + t.getCreator().trim()).toLowerCase())
+            .collect(Collectors.toSet());
+    }
+
     public List<SpotifySearchResult> getLastResults() {
         return List.copyOf(lastResults);
     }
@@ -237,6 +244,8 @@ public class AiDiscoveryService {
                 Set<String> importedUrls = trackRepository.findAll().stream()
                     .map(track -> track.getMediaUrl())
                     .collect(Collectors.toSet());
+                
+                Set<String> importedTitleArtists = getImportedTitleArtists();
 
                 // ── Phase 1: Spotify ──────────────────────────────────────────
                 String token = getSpotifyToken();
@@ -373,6 +382,12 @@ public class AiDiscoveryService {
                 // ── Deduplicate & sort ────────────────────────────────────────
                 Map<String, SpotifySearchResult> deduped = new LinkedHashMap<>();
                 for (SpotifySearchResult r : combined) {
+                    if (!r.isAlreadyImported() && r.getTitle() != null && r.getArtist() != null) {
+                        String taKey = (r.getTitle().trim() + "|" + r.getArtist().trim()).toLowerCase();
+                        if (importedTitleArtists.contains(taKey)) {
+                            r.setAlreadyImported(true);
+                        }
+                    }
                     String key = r.getSpotifyUrl() != null && !r.getSpotifyUrl().isBlank()
                         ? r.getSpotifyUrl()
                         : (r.getTitle() + "|" + r.getArtist());
@@ -433,6 +448,7 @@ public class AiDiscoveryService {
                 Set<String> importedUrls = trackRepository.findAll().stream()
                     .map(track -> track.getMediaUrl())
                     .collect(Collectors.toSet());
+                Set<String> importedTitleArtists = getImportedTitleArtists();
 
                 String token = getSpotifyToken();
                 if (token != null) {
