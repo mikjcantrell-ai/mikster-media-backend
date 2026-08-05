@@ -39,18 +39,32 @@ public class EmailService {
         }
 
         try {
-            String htmlContent = "<h2>Welcome to Mikster Media, " + member.getDisplayName() + "!</h2>" +
-                    "<p>Thank you for joining our community.</p>" +
-                    "<h3>What We Do</h3>" +
-                    "<p>Mikster Media is the premier platform to discover, rate, and track the world's finest AI-generated music. From Suno symphonies to Udio anthems — all in one place.</p>" +
-                    "<h3>How Top Tracks Are Ranked</h3>" +
-                    "<p>Our unique algorithm ranks tracks based on a combination of global platform statistics (Spotify pop score, Last.fm listeners, YouTube views, TikTok plays, Suno/Udio likes) and community-driven local upvotes. " +
-                    "As a member, you have the power to upvote your favorite tracks once per day to help them climb the charts!</p>" +
-                    "<p>We're excited to have you on board.</p>" +
-                    "<p>Cheers,<br>The Mikster Media Team</p>";
+            String subject;
+            String htmlContent;
+            
+            if ("CREATOR".equalsIgnoreCase(member.getMembershipTier()) || "PRODUCER".equalsIgnoreCase(member.getMembershipTier())) {
+                subject = "Welcome to Mikster Media, " + member.getDisplayName() + "! Let's make some noise \uD83C\uDFB6";
+                String aliasName = (member.getUsername() != null && !member.getUsername().isBlank()) ? member.getUsername() : member.getDisplayName();
+                htmlContent = "<p>Hi " + member.getDisplayName() + ",</p>" +
+                        "<p>Welcome to Mikster Media! We are so excited to have you join us as a <strong>Creator</strong>.</p>" +
+                        "<p>We noticed you've joined the community under the alias <strong>" + aliasName + "</strong>, and we are incredibly eager to see the magic you're cooking up. Our platform is built specifically to spotlight and elevate talented creators like you who are pushing the boundaries of AI music.</p>" +
+                        "<p>Thank you for choosing to share your artistry and sound with us. As you get settled in, please feel free to start submitting your tracks and setting up your creator profile. We can't wait to hear your first release!</p>" +
+                        "<p>If you need any help navigating the platform or have questions as you get started, we're always just an email away.</p>" +
+                        "<p>Welcome to the community, " + aliasName + ". Let's create something amazing!</p>" +
+                        "<p>Best regards,<br>The Mikster Media Team</p>";
+            } else {
+                subject = "Welcome to the Mikster Media family, " + member.getDisplayName() + "! \uD83C\uDFA7";
+                htmlContent = "<p>Hi " + member.getDisplayName() + ",</p>" +
+                        "<p>Welcome to Mikster Media! We are absolutely thrilled to have you join our community as a <strong>Listener</strong>.</p>" +
+                        "<p>Whether you're here to discover the next hidden gem in AI music, curate your ultimate playlists, or just sit back and explore, you are in the right place. Our platform is constantly growing with incredible new tracks from talented creators all over the world, and we can't wait for you to start exploring.</p>" +
+                        "<p>Thank you so much for becoming a member and supporting the future of AI-generated music. If you ever have any feedback or find a song you just can't stop listening to, we'd love to hear about it!</p>" +
+                        "<p>Welcome to the community, and happy listening!</p>" +
+                        "<p>Best regards,<br>The Mikster Media Team</p>";
+            }
 
-            sendResendEmail(member.getEmail(), "Welcome to Mikster Media AI Music!", htmlContent);
-            log.info("Welcome email sent to {} via Resend API", member.getEmail());
+            // CC the admin
+            sendResendEmail(member.getEmail(), subject, htmlContent, adminEmail);
+            log.info("Welcome email sent to {} via Resend API (CC: {})", member.getEmail(), adminEmail);
 
         } catch (Exception e) {
             log.error("Failed to send welcome email to {}: {}", member.getEmail(), e.getMessage());
@@ -247,6 +261,10 @@ public class EmailService {
     }
 
     private void sendResendEmail(String to, String subject, String htmlContent) {
+        sendResendEmail(to, subject, htmlContent, null);
+    }
+
+    private void sendResendEmail(String to, String subject, String htmlContent, String cc) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(resendApiKey);
@@ -256,12 +274,14 @@ public class EmailService {
             formattedFrom = "Mikster Media <" + formattedFrom + ">";
         }
 
-        Map<String, Object> payload = Map.of(
-                "from", formattedFrom,
-                "to", List.of(to),
-                "subject", subject,
-                "html", htmlContent
-        );
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("from", formattedFrom);
+        payload.put("to", List.of(to));
+        payload.put("subject", subject);
+        payload.put("html", htmlContent);
+        if (cc != null && !cc.isBlank()) {
+            payload.put("cc", List.of(cc));
+        }
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
         restTemplate.exchange("https://api.resend.com/emails", HttpMethod.POST, request, String.class);
