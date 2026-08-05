@@ -182,6 +182,10 @@ public class AiDiscoveryService {
         Map<String, Object> s = new LinkedHashMap<>();
         s.put("running",          fetchRunning);
         s.put("progress",         fetchProgress);
+        s.put("resultCount",      lastResults.size());
+        if (fetchError != null) s.put("error", fetchError);
+        return s;
+    }
 
     private List<String> getKnownArtistQueries() {
         List<Artist> artists = artistRepository.findAll();
@@ -203,10 +207,6 @@ public class AiDiscoveryService {
             queries.add(sb.toString());
         }
         return queries;
-    }
-        s.put("resultCount",      lastResults.size());
-        if (fetchError != null) s.put("error", fetchError);
-        return s;
     }
 
     public List<SpotifySearchResult> getLastResults() {
