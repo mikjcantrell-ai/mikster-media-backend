@@ -2,6 +2,7 @@ package com.mikstermedia.service;
 
 import com.mikstermedia.dto.SpotifySearchResult;
 import com.mikstermedia.dto.SpotifySearchPage;
+import com.mikstermedia.dto.SpotifyArtistSearchResult;
 import com.mikstermedia.model.Artist;
 import com.mikstermedia.model.PlatformSetting;
 import com.mikstermedia.model.Track;
@@ -338,6 +339,33 @@ public class SpotifyService {
         }
     }
 
+    /**
+     * Searches Spotify for artists matching {@code query}.
+     *
+     * @param query  free-text search (e.g. "Confetti Weather")
+     * @param limit  max results (default 10)
+     * @return list of {@link SpotifyArtistSearchResult}, each flagged if already imported
+     */
+    public List<SpotifyArtistSearchResult> searchArtists(String query, int limit) {
+        String token = getAccessToken();
+        if (token == null) return List.of();
+
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        
+        try {
+            Map<?, ?> response = restClient.get()
+                .uri(SEARCH_URL + "?q={q}&type=artist&limit={l}", query, safeLimit)
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .body(Map.class);
+
+            return parseArtistSearchResponse(response);
+        } catch (Exception e) {
+            log.error("Spotify artist search failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     /** Playlist search terms targeting curated AI-music collections. */
     private static final List<String> PLAYLIST_QUERIES = List.of(
         "AI music 2025",
@@ -644,6 +672,63 @@ public class SpotifyService {
             log.warn("parseItems(response) error: {}", e.getMessage());
         }
         return out;
+    }
+
+    /** Parses the Spotify artist search JSON response. */
+    private List<SpotifyArtistSearchResult> parseArtistSearchResponse(Map<?, ?> response) {
+        List<SpotifyArtistSearchResult> results = new ArrayList<>();
+        if (response == null) return results;
+
+        try {
+            Map<?, ?> artistsObj = (Map<?, ?>) response.get("artists");
+            if (artistsObj == null) return results;
+
+            List<?> items = (List<?>) artistsObj.get("items");
+            if (items == null) return results;
+
+            for (Object itemObj : items) {
+                if (!(itemObj instanceof Map)) continue;
+                Map<?, ?> item = (Map<?, ?>) itemObj;
+
+                String id = (String) item.get("id");
+                String name = (String) item.get("name");
+                
+                String imageUrl = null;
+                List<?> images = (List<?>) item.get("images");
+                if (images != null && !images.isEmpty()) {
+                    Map<?, ?> firstImage = (Map<?, ?>) images.get(0);
+                    imageUrl = (String) firstImage.get("url");
+                }
+
+                String profileUrl = null;
+                Map<?, ?> extUrls = (Map<?, ?>) item.get("external_urls");
+                if (extUrls != null) {
+                    profileUrl = (String) extUrls.get("spotify");
+                }
+
+                String genresStr = "";
+                List<?> genresList = (List<?>) item.get("genres");
+                if (genresList != null && !genresList.isEmpty()) {
+                    genresStr = String.join(", ", genresList.stream().map(Object::toString).toList());
+                }
+
+                int popularity = 0;
+                Number pop = (Number) item.get("popularity");
+                if (pop != null) popularity = pop.intValue();
+
+                SpotifyArtistSearchResult result = new SpotifyArtistSearchResult(id, name, imageUrl, profileUrl, genresStr, popularity);
+                
+                // Check if already in DB
+                boolean exists = artistRepository.findByNameContainingIgnoreCase(name).stream()
+                                    .anyMatch(a -> a.getName().equalsIgnoreCase(name));
+                result.setAlreadyImported(exists);
+                
+                results.add(result);
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse Spotify artist search response: {}", e.getMessage());
+        }
+        return results;
     }
 
     /** Parses a raw Spotify items list into {@link SpotifySearchResult} objects. */

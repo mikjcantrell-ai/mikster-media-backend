@@ -2,6 +2,7 @@ package com.mikstermedia.controller;
 
 import com.mikstermedia.dto.SpotifySearchPage;
 import com.mikstermedia.dto.SpotifySearchResult;
+import com.mikstermedia.dto.SpotifyArtistSearchResult;
 import com.mikstermedia.dto.TrackDTO;
 import com.mikstermedia.model.Artist;
 import com.mikstermedia.repository.ArtistRepository;
@@ -117,6 +118,52 @@ public class SpotifyController {
         return ResponseEntity.ok()
             .header("Cache-Control", "no-store, no-cache, must-revalidate")
             .body(spotifyService.search(q, limit, offset));
+    }
+
+    /** Searches Spotify and returns artist candidates for admin review. */
+    @GetMapping("/search/artists")
+    public ResponseEntity<List<SpotifyArtistSearchResult>> searchArtists(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok()
+            .header("Cache-Control", "no-store, no-cache, must-revalidate")
+            .body(spotifyService.searchArtists(q, limit));
+    }
+
+    /**
+     * POST /api/spotify/import/artist (ADMIN only)
+     * Imports a Spotify artist into the database.
+     */
+    @PostMapping("/import/artist")
+    public ResponseEntity<Void> importArtist(@RequestBody SpotifyArtistSearchResult candidate) {
+        if (candidate.getName() == null || candidate.getName().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String name = candidate.getName().trim();
+
+        // Check if artist already exists
+        boolean exists = artistRepository.findByNameContainingIgnoreCase(name).stream()
+                .anyMatch(a -> a.getName().equalsIgnoreCase(name));
+
+        if (!exists) {
+            Artist artist = new Artist();
+            artist.setName(name);
+            artist.setAiToolsUsed("Spotify Import");
+            artist.setProfileUrl(candidate.getProfileUrl());
+            if (candidate.getImageUrl() != null && !candidate.getImageUrl().isBlank()) {
+                artist.setImageUrl(candidate.getImageUrl());
+            }
+            if (candidate.getGenres() != null && !candidate.getGenres().isBlank()) {
+                artist.setPrimaryGenre(candidate.getGenres());
+            }
+            artistRepository.save(artist);
+            log.info("Imported new artist from Spotify: {}", name);
+        } else {
+            log.info("Artist {} already exists, skipping import.", name);
+        }
+
+        return ResponseEntity.ok().build();
     }
 
     /**
