@@ -154,7 +154,7 @@ public class AiDiscoveryService {
         "review", "tutorial", "how to", "guide", "reacts", "reaction", 
         "explained", "news", "update", "podcast", "generator", "i found",
         "secret", "course", "masterclass", "breakdown", "went number 1",
-        "race is over"
+        "race is over", "via riffusion"
     );
 
     private static final String SPOTIFY_TOKEN_URL  = "https://accounts.spotify.com/api/token";

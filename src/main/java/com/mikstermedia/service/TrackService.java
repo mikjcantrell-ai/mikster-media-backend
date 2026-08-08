@@ -70,7 +70,7 @@ public class TrackService {
             "review", "tutorial", "how to", "guide", "reacts", "reaction", 
             "explained", "news", "update", "podcast", "generator", "i found",
             "secret", "course", "masterclass", "breakdown", "went number 1",
-            "race is over"
+            "race is over", "via riffusion"
         );
 
         for (Track track : allTracks) {
