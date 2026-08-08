@@ -1,0 +1,18 @@
+--- src/main/java/com/mikstermedia/service/AiDiscoveryService.java
++++ src/main/java/com/mikstermedia/service/AiDiscoveryService.java
+@@ -238,6 +238,10 @@
+                 Set<String> importedUrls = trackRepository.findAll().stream()
+                     .map(track -> track.getMediaUrl())
+                     .collect(Collectors.toSet());
++                Set<String> importedTitlesAndCreators = trackRepository.findAll().stream()
++                    .filter(t -> t.getTitle() != null && t.getCreator() != null)
++                    .map(t -> (t.getTitle().trim() + "|" + t.getCreator().trim()).toLowerCase())
++                    .collect(Collectors.toSet());
+ 
+                 // ── Phase 1: Spotify ──────────────────────────────────────────
+                 String token = getSpotifyToken();
+@@ -248,7 +252,7 @@
+                         try {
+-                            List<SpotifySearchResult> hits = searchSpotify(token, query, importedUrls);
++                            List<SpotifySearchResult> hits = searchSpotify(token, query, importedUrls, importedTitlesAndCreators);
+                             // Strict AI filter — only keep genuinely AI-generated tracks

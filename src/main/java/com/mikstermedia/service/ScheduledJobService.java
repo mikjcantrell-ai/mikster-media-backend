@@ -45,6 +45,11 @@ public class ScheduledJobService {
     private final AiDiscoveryService        aiDiscoveryService;
     private final SoundCloudService         soundCloudService;
     private final PlatformSettingRepository settingRepository;
+    
+    // LLM Integration
+    private final LlmContentService         llmContentService;
+    private final com.mikstermedia.repository.TrackRepository trackRepository;
+    private final com.mikstermedia.repository.BlogPostRepository blogPostRepository;
 
     // ── Scheduled entry point ──────────────────────────────────────────────────
 
@@ -141,5 +146,70 @@ public class ScheduledJobService {
         log.info("Scheduled: refreshing SoundCloud play counts...");
         soundCloudService.refreshAllSoundCloudTracks();
         log.info("Scheduled: SoundCloud play count refresh complete.");
+    }
+
+    // ── Phase 5: LLM Content Generation ───────────────────────────────────────
+
+    /**
+     * Nightly job to backfill missing descriptions for 10 tracks to avoid rate limits.
+     * Runs every day at 2:00 AM UTC.
+     */
+    @Scheduled(cron = "0 0 2 * * *", zone = "UTC")
+    public void backfillTrackDescriptions() {
+        log.info("Scheduled: Running nightly LLM track description backfill...");
+        // Fetch up to 10 tracks missing descriptions
+        org.springframework.data.domain.Pageable limit = org.springframework.data.domain.PageRequest.of(0, 10);
+        java.util.List<com.mikstermedia.model.Track> missing = trackRepository.findAll(limit).stream()
+            .filter(t -> t.getDescription() == null || t.getDescription().isBlank())
+            .toList();
+
+        for (com.mikstermedia.model.Track t : missing) {
+            try {
+                String desc = llmContentService.generateTrackReview(t);
+                if (desc != null && !desc.isBlank()) {
+                    t.setDescription(desc);
+                    trackRepository.save(t);
+                    log.info("Backfilled description for track: {}", t.getTitle());
+                }
+                Thread.sleep(2000); // Respect API rate limits
+            } catch (Exception e) {
+                log.error("Failed to backfill description for track {}: {}", t.getId(), e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Weekly job to generate a blog post roundup of the Top 5 tracks.
+     * Runs every Friday at 5:00 PM UTC.
+     */
+    @Scheduled(cron = "0 0 17 * * FRI", zone = "UTC")
+    public void generateWeeklyBlog() {
+        log.info("Scheduled: Generating weekly blog roundup...");
+        try {
+            java.util.List<com.mikstermedia.model.Track> topTracks = weeklyChartService.getTopChart().stream()
+                .map(com.mikstermedia.model.WeeklyChart::getTrack)
+                .limit(5)
+                .toList();
+
+            if (!topTracks.isEmpty()) {
+                String content = llmContentService.generateWeeklyRoundup(topTracks);
+                if (content != null && !content.isBlank()) {
+                    String title = "Top AI Tracks of the Week - " + java.time.LocalDate.now().toString();
+                    String slug = "top-ai-tracks-" + java.time.LocalDate.now().toString();
+                    
+                    com.mikstermedia.model.BlogPost post = new com.mikstermedia.model.BlogPost();
+                    post.setTitle(title);
+                    post.setSlug(slug);
+                    post.setContent(content);
+                    post.setStatus("DRAFT"); // Requires admin approval before going live
+                    post.setPublishedDate(java.time.LocalDateTime.now());
+                    
+                    blogPostRepository.save(post);
+                    log.info("Saved weekly blog post draft: {}", title);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate weekly blog: {}", e.getMessage());
+        }
     }
 }

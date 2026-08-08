@@ -227,4 +227,8 @@ public class Track {
     /** The prompt, parameters, or recipe used to generate the track in the AI tool. */
     @Column(name = "prompt_recipe", columnDefinition = "TEXT")
     private String promptRecipe;
+
+    /** Auto-generated music review / description for SEO and user context. */
+    @Column(columnDefinition = "TEXT")
+    private String description;
 }
