@@ -59,7 +59,7 @@ public class LanguageDetectionService {
      */
     private static final List<String> FOREIGN_LANGUAGE_KEYWORDS = List.of(
         "hindi", "punjabi", "tamil", "telugu", "malayalam", "kannada", 
-        "bengali", "gujarati", "marathi", "odia", "oriya", "santhali", 
+        "bengali", "gujarati", "marathi", "odia", "oriya", "santhali", "santali",
         "bhojpuri", "urdu", "nepali", "sinhala", "spanish", "kpop", 
         "jpop", "cpop", "bollywood", "tollywood", "kollywood"
     );
