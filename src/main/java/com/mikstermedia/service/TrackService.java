@@ -58,6 +58,36 @@ public class TrackService {
         }
         log.info("Cleanup complete. Deleted {} non-English tracks.", deletedCount);
         return deletedCount;
+    }
+
+    @Transactional
+    public int cleanNegativeFilterTracks() {
+        log.info("Starting cleanup of negative filter tracks in the database...");
+        List<Track> allTracks = trackRepository.findAll();
+        int deletedCount = 0;
+        
+        List<String> NEGATIVE_TERMS = List.of(
+            "review", "tutorial", "how to", "guide", "reacts", "reaction", 
+            "explained", "news", "update", "podcast", "generator", "i found",
+            "secret", "course", "masterclass", "breakdown", "went number 1",
+            "race is over"
+        );
+
+        for (Track track : allTracks) {
+            String title = track.getTitle() != null ? track.getTitle().toLowerCase() : "";
+            String artist = track.getCreator() != null ? track.getCreator().toLowerCase() : "";
+            
+            boolean match = NEGATIVE_TERMS.stream().anyMatch(term -> title.contains(term) || artist.contains(term));
+            if (match) {
+                log.info("Deleting negative filter track: {} (ID: {})", track.getTitle(), track.getId());
+                newReleaseRepository.deleteByTrackId(track.getId());
+                weeklyChartRepository.deleteByTrackId(track.getId());
+                trackRepository.delete(track);
+                deletedCount++;
+            }
+        }
+        log.info("Cleanup complete. Deleted {} negative filter tracks.", deletedCount);
+        return deletedCount;
     }    // ─────────────────────────────────────────────────────────────────────────
     // READ operations
     // ─────────────────────────────────────────────────────────────────────────

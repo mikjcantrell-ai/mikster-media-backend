@@ -50,6 +50,13 @@ public class TrackController {
         return ResponseEntity.ok("Successfully cleaned " + deleted + " non-English tracks from the database.");
     }
 
+    /** GET /api/tracks/clean-negative-filter — admin endpoint to delete tracks matching the negative filter */
+    @GetMapping("/clean-negative-filter")
+    public ResponseEntity<String> cleanNegativeFilter() {
+        int deleted = trackService.cleanNegativeFilterTracks();
+        return ResponseEntity.ok("Successfully cleaned " + deleted + " tracks matching negative terms (tutorials, news, etc.).");
+    }
+
     /** GET /api/tracks/{id} — returns a single track by primary key */
     @GetMapping("/{id}")
     public ResponseEntity<Track> getTrackById(@PathVariable Long id) {
