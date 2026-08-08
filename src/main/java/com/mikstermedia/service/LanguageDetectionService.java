@@ -57,15 +57,33 @@ public class LanguageDetectionService {
      * @param text The song title or artist name to check.
      * @return true if English or ambiguous, false if confidently detected as non-English.
      */
+    private static final List<String> FOREIGN_LANGUAGE_KEYWORDS = List.of(
+        "hindi", "punjabi", "tamil", "telugu", "malayalam", "kannada", 
+        "bengali", "gujarati", "marathi", "odia", "oriya", "santhali", 
+        "bhojpuri", "urdu", "nepali", "sinhala", "spanish", "kpop", 
+        "jpop", "cpop", "bollywood", "tollywood", "kollywood"
+    );
+
     public boolean isLikelyEnglish(String text) {
         if (languageDetector == null || text == null || text.trim().isEmpty()) {
             return true; // Pass through if service failed to init or string is empty
         }
 
-        // Fast-path rejection for common non-Latin scripts (Arabic, Cyrillic, Chinese, Japanese, Korean, Thai, Hindi, etc.)
-        // This catches short titles like "20 عاما" which the n-gram detector might find too short to confidently classify.
-        if (text.matches(".*[\\p{IsArabic}\\p{IsCyrillic}\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsDevanagari}].*")) {
-            log.debug("Filtered out non-English track via regex. Text: '{}'", text);
+        String textLower = text.toLowerCase();
+
+        // 1. Explicit keyword rejection for transliterated foreign songs 
+        // (e.g. "Bas Tu Hi | Hindi AI Song" is written in Latin chars but is Hindi)
+        for (String kw : FOREIGN_LANGUAGE_KEYWORDS) {
+            if (textLower.contains(kw)) {
+                log.debug("Filtered out non-English track via explicit keyword '{}'. Text: '{}'", kw, text);
+                return false;
+            }
+        }
+
+        // 2. Fast-path rejection for common non-Latin scripts
+        // Expanded to include Indic scripts (Tamil, Odia, Bengali, etc.), Greek, Hebrew, etc.
+        if (text.matches(".*[\\p{IsArabic}\\p{IsCyrillic}\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsDevanagari}\\p{IsBengali}\\p{IsGurmukhi}\\p{IsGujarati}\\p{IsOriya}\\p{IsTamil}\\p{IsTelugu}\\p{IsKannada}\\p{IsMalayalam}\\p{IsSinhala}\\p{IsGreek}\\p{IsHebrew}].*")) {
+            log.debug("Filtered out non-English track via script regex. Text: '{}'", text);
             return false;
         }
         
