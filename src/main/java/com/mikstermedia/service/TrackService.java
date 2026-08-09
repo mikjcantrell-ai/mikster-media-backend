@@ -309,6 +309,8 @@ public class TrackService {
         track.setEmbedUrl(dto.getEmbedUrl());
         track.setVideoUrl(dto.getVideoUrl());
         track.setAiSourceUrl(dto.getAiSourceUrl());
+        track.setYoutubeShortUrl(dto.getYoutubeShortUrl());
+        track.setTiktokUrl(dto.getTiktokUrl());
         track.setImageUrl(dto.getImageUrl());
         track.setPromptRecipe(dto.getPromptRecipe());
         if (dto.getSpotifyPopularity() != null) {

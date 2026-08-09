@@ -213,6 +213,14 @@ public class WeeklyChartService {
         // the songs with the highest absolute lifetime popularity win out!
         double rawScore = weeklyScore + (lifetimeScore * 0.01);
 
+        // Apply bonus points for having promotional short-form content
+        if (track.getYoutubeShortUrl() != null && !track.getYoutubeShortUrl().trim().isEmpty()) {
+            rawScore += 25.0;
+        }
+        if (track.getTiktokUrl() != null && !track.getTiktokUrl().trim().isEmpty()) {
+            rawScore += 25.0;
+        }
+
         // Apply Freshness Multiplier (Billboard style)
         double freshnessMultiplier = 1.0;
         if (track.getReleaseDate() != null && !track.getReleaseDate().isEmpty()) {

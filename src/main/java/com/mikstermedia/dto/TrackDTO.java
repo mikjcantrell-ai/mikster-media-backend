@@ -14,6 +14,8 @@ public class TrackDTO {
     private String embedUrl;
     private String videoUrl;
     private String aiSourceUrl;
+    private String youtubeShortUrl;
+    private String tiktokUrl;
     private String imageUrl;
     private String promptRecipe;
     private Integer spotifyPopularity;
@@ -50,6 +52,10 @@ public class TrackDTO {
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public String getAiSourceUrl()     { return aiSourceUrl; }
     public void setAiSourceUrl(String aiSourceUrl) { this.aiSourceUrl = aiSourceUrl; }
+    public String getYoutubeShortUrl() { return youtubeShortUrl; }
+    public void setYoutubeShortUrl(String youtubeShortUrl) { this.youtubeShortUrl = youtubeShortUrl; }
+    public String getTiktokUrl()       { return tiktokUrl; }
+    public void setTiktokUrl(String tiktokUrl) { this.tiktokUrl = tiktokUrl; }
     public String getImageUrl()        { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public String getPromptRecipe()    { return promptRecipe; }

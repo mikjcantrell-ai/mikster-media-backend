@@ -124,6 +124,12 @@ public class Track {
     @Column(name = "ai_source_url", length = 1000)
     private String aiSourceUrl;
 
+    @Column(name = "youtube_short_url", length = 1000)
+    private String youtubeShortUrl;
+
+    @Column(name = "tiktok_url", length = 1000)
+    private String tiktokUrl;
+
     /**
      * Optional cover art / album artwork image URL for this track.
      * Displayed in track cards on the Songs page, homepage featured section,
